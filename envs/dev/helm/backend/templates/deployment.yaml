@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: shopverse
+    component: backend
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: shopverse
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: shopverse
+        component: backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ include "shopverse.backend.image" . }}"
+          imagePullPolicy: Always        # IfNotPresent
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.configmap.name }}  # shopverse-config
+            - secretRef:
+                name: {{ .Values.secret.name }}     # shopverse-dev-mysql-jwt-credentials
+                
+          {{- with .Values.resources }}      
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+         
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10

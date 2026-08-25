@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: shopverse-dev-app-project
+  namespace: argocd
+spec:
+  # Allowed Git repositories
+  sourceRepos: 
+    - https://github.com/vaheedgit26/vg-shopverse.git
+
+  # Allowed destinations (namespaces + clusters)
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: shopverse-dev
+    
+  # Cluster-wide resources this AppProject can manage
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace          # Allow creation of Namespaces
+    - group: "rbac.authorization.k8s.io"
+      kind: Role
+    - group: "rbac.authorization.k8s.io"
+      kind: RoleBinding
+
+  # Namespace-scoped resources this AppProject can manage
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  # Optional description / metadata
+  description: >
+    Single AppProject for dev environment of Shopverse application.
+    Provides GitOps permissions and allows automated namespace creation.

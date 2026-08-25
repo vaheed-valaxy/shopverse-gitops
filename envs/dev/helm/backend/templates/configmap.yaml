@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configmap.name }}                         # shopverse-config
+  namespace: {{ .Values.namespace }}                         # shopverse-dev
+  labels:
+    app: shopverse
+data:
+  DB_HOST: {{ .Values.mysql.externalNameService | quote }}   # "shopverse-mysql-ens"
+  DB_PORT: {{ .Values.mysql.port | quote }}                  # "3306"
+  DB_NAME: {{ .Values.mysql.database | quote }}              # "shopverse"
+  FRONTEND_ORIGIN: "*"                                       # "http://frontend-svc:8080"

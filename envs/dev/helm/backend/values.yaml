@@ -1,0 +1,43 @@
+namespace: shopverse-dev
+# ──────────────────────────────────────
+# BACKEND
+# ──────────────────────────────────────
+image:
+  uri: 254405569649.dkr.ecr.us-east-1.amazonaws.com
+  name: shopverse-backend
+  version: v1
+
+deployment:
+  name: backend-deploy
+  replicas: 1
+    
+service:
+  name: backend-svc
+  port: 8080
+  targetPort: 8080
+
+configmap:
+  name: backend-config
+
+secret:
+  name: shopverse-dev-mysql-jwt-credentials
+
+resources:
+  requests: 
+    cpu: "100m"
+    memory: "128Mi" 
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+         
+# ──────────────────────────────────────
+# MySQL
+# ──────────────────────────────────────
+mysql:
+  host: shopverse-dev-mysql.ca9aykaigakf.us-east-1.rds.amazonaws.com
+  port: 3306
+  externalNameService: shopverse-mysql-ens
+  database: shopverse
+  user: shopverse
+    
+jwtSecret: ""

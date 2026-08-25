@@ -1,0 +1,52 @@
+namespace: shopverse-dev
+# ──────────────────────────────────────
+# FRONTEND
+# ──────────────────────────────────────
+image:
+  uri: 254405569649.dkr.ecr.us-east-1.amazonaws.com
+  name: shopverse-frontend
+  version: v1
+
+deployment:
+  name: frontend-deploy
+  replicas: 1
+
+service:
+  name: frontend-svc
+  port: 8080
+  targetPort: 8080
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "100m"
+    memory: "128Mi"
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    
+# ──────────────────────────────────────
+# MySQL
+# ──────────────────────────────────────
+mysql:
+  # host: shopverse-dev-mysql.ca9aykaigakf.us-east-1.rds.amazonaws.com
+  externalNameService: shopverse-mysql
+  database: shopverse
+  user: shopverse
+    
+jwtSecret: ""

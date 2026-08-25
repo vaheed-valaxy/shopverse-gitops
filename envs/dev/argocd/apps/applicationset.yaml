@@ -1,0 +1,62 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: shopverse-dev-applicationset
+  namespace: argocd
+spec:
+  generators:
+    # MATRIX = 1. All list items * 1st git repo folder
+    #          2. All list items * 2nd git repo folder ...
+    - matrix:
+        generators:
+          - list:
+              elements: 
+                - project: shopverse
+                  env: dev
+                  repoUrl: https://github.com/vaheedgit26/vg-shopverse.git
+
+          # SERVICES (auto-discovered from ONE env only to avoid duplication)        
+          - git:
+              repoUrl: https://github.com/vaheedgit26/vg-shopverse.git
+              revision: main
+              directories:
+                - path: gitops/dev/helm/*
+  
+  # Application template
+  template:
+    metadata:
+      name: "{{project}}-{{env}}-{{path.basename}}"
+      namespace: argocd
+      
+      labels:
+        env: "{{env}}"
+        project: "{{project}}"
+        component: "{{path.basename}}"
+        app.kubernetes.io/part-of: "{{project}}"
+
+    spec:
+      project: "{{project}}-{{env}}"         # This name should match with the name of "AppProject" created previously
+      
+      source:
+        repoURL: "{{repoURL}}"
+        targetRevision: main
+        # Dynamic env + service
+        path: "gitops/{{env}}/helm/{{path.basename}}"
+        helm:
+          releaseName: "{{project}}-{{env}}-{{path.basename}}"  # must be <= 53 chars
+          valueFiles:
+            - values.yaml
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{project}}-{{env}}"
+
+      syncPolicy:
+        automated:
+          prune: true          # delete resources not in Git
+          selfHeal: true       # revert out-of-band changes
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - ServerSideApply=true
+          - PruneLast=true
