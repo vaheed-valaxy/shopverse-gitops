@@ -6,7 +6,7 @@ metadata:
 spec:
   # Allowed Git repositories
   sourceRepos: 
-    - https://github.com/vaheedgit26/vg-shopverse.git
+    - https://github.com/vaheed-valaxy/shopverse-gitops.git
 
   # Allowed destinations (namespaces + clusters)
   destinations:
