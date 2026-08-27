@@ -13,14 +13,14 @@ spec:
               elements: 
                 - project: shopverse
                   env: dev
-                  repoUrl: https://github.com/vaheedgit26/vg-shopverse.git
+                  repoUrl: https://github.com/vaheed-valaxy/shopverse-gitops.git
 
           # SERVICES (auto-discovered from ONE env only to avoid duplication)        
           - git:
-              repoUrl: https://github.com/vaheedgit26/vg-shopverse.git
+              repoUrl: https://github.com/vaheed-valaxy/shopverse-gitops.git
               revision: main
               directories:
-                - path: gitops/dev/helm/*
+                - path: envs/dev/helm/*
   
   # Application template
   template:
@@ -41,7 +41,7 @@ spec:
         repoURL: "{{repoURL}}"
         targetRevision: main
         # Dynamic env + service
-        path: "gitops/{{env}}/helm/{{path.basename}}"
+        path: "envs/{{env}}/helm/{{path.basename}}"
         helm:
           releaseName: "{{project}}-{{env}}-{{path.basename}}"  # must be <= 53 chars
           valueFiles:
