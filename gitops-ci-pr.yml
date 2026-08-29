@@ -1,0 +1,85 @@
+name: GitOps CI - Helm + Kubernetes Security
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'helm-charts/**'
+      - 'envs/dev/**'
+      - 'envs/qa/**'
+      - '.github/workflows/gitops-ci-pr.yml'
+
+permissions:
+  contents: read
+  pull-requests: read
+  security-events: write
+
+env:
+  TRIVY_VERSION: v0.72.0
+  HELM_VERSION: v3.19.0
+  KUBECONFORM_VERSION: v0.7.0
+  
+jobs:
+  Detect-Changed-Components-Job:
+    name: Detect changed components
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: read
+
+    outputs:
+      frontend-dev: ${{ steps.filter.outputs.frontend-dev }}
+      frontend-qa: ${{ steps.filter.outputs.frontend-qa }}
+      backend-dev: ${{ steps.filter.outputs.backend-dev }}
+      backend-qa: ${{ steps.filter.outputs.backend-qa }}
+
+    steps:
+       - name: Checkout
+         uses: actions/checkout@v6
+         with:
+          fetch-depth: 0
+
+       - name: Detect Changes
+         id: filter
+         uses: dorny/paths-filter@v4      
+         with:
+           filters: |
+             frontend-dev:
+               - 'envs/dev/values-frontend.yaml'        # - 'helm-charts/frontend/**'
+             frontend-qa:
+               - 'envs/qa/values-frontend.yaml'
+        
+             backend-dev:
+               - 'envs/dev/values-backend.yaml'
+             backend-qa:
+               - 'envs/qa/values-backend.yaml'
+
+  Frontend-Validation-Job:
+    name: Frontend Gitops Validation
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/_reusable-gitops-validation.yml
+    with:
+      component: frontend
+      chart-path: ./helm-charts/frontend
+      values-file: ./envs/dev/values.yaml
+      
+  Backend-Validation-Job:
+    name: Backend Gitops Validation
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    uses: ./.github/workflows/_reusable-gitops-validation.yml
+    with:
+      component: backend
+      chart-path: ./helm-charts/backend
+      values-file: ./envs/dev/values.yaml
+        
+             
+
+
+
+steps.changes.outputs.frontend
+steps.changes.outputs.backend
+steps.changes.outputs.redis
