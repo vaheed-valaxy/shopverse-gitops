@@ -10,6 +10,11 @@ on:
         required: true
         type: string
 
+      environment:
+        description: "Environment name"
+        required: true
+        type: string
+
       chart-path:
         description: "Path to Helm chart"
         required: true
