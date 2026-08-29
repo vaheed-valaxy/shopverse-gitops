@@ -6,7 +6,7 @@ image:
   uri: 254405569649.dkr.ecr.us-east-1.amazonaws.com
   name: shopverse/frontend # shopverse-frontend
   version: v1
-  digest: sha256:66e9a26a94c6dd080dc98520a22aa8d29a79fe1a67b9d4b883354734e99159aa
+  digest: sha256:3c48d1ecec78dfdd309448700e8b1b5e157504eda4236d62f322af8b33068995
 deployment:
   name: frontend-deploy
   replicas: 1
