@@ -88,7 +88,7 @@ jobs:
         run: |
           set -e
 
-          KUBECONFORM_URL: "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          KUBECONFORM_URL="https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
 
           echo "Downloading Kubeconform ${KUBECONFORM_VERSION}..."
 
