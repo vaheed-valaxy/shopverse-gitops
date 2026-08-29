@@ -4,7 +4,7 @@ namespace: shopverse-dev
 # ──────────────────────────────────────
 image:
   uri: 254405569649.dkr.ecr.us-east-1.amazonaws.com
-  name: shopverse-frontend
+  name: shopverse/frontend             # shopverse-frontend
   version: v1
   digest: 
 
