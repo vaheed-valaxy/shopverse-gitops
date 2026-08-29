@@ -41,3 +41,73 @@ shopverse-gitops/
 | Changed-component detection       | **Later, when needed**                  |
 | Argo CD                           | Deploy after GitOps merge               |
 | Kyverno                           | Final admission enforcement             |
+
+## Your complete architecture:  
+```text
+                     APPLICATION REPOSITORIES
+                     =========================
+
+      shopverse-frontend              shopverse-backend
+               │                              │
+               ▼                              ▼
+          GitHub Actions                 GitHub Actions
+               │                              │
+        ┌──────┼──────┐                ┌──────┼──────┐
+        │      │      │                │      │      │
+      ESLint CodeQL Trivy             SAST   CodeQL Trivy
+        │      │      │                │      │      │
+        └──────┼──────┘                └──────┼──────┘
+               │                              │
+               ▼                              ▼
+          Docker Build                   Docker Build
+               │                              │
+               ▼                              ▼
+          Trivy Image                    Trivy Image
+               │                              │
+               ▼                              ▼
+               ECR                            ECR
+               │                              │
+               ▼                              ▼
+             Cosign                         Cosign
+               │                              │
+               └──────────────┬───────────────┘
+                              │
+                              ▼
+                       GitOps Repository
+                       =================
+                              │
+                        Create PR
+                              │
+                              ▼
+                    ┌──────────────────┐
+                    │   GitOps CI      │
+                    │                  │
+                    │ Helm Lint        │
+                    │ Helm Template    │
+                    │ Kubeconform      │
+                    │ Trivy Config     │
+                    │ SARIF            │
+                    └────────┬─────────┘
+                             │
+                       PR checks pass
+                             │
+                             ▼
+                           MERGE
+                             │
+                             ▼
+                          Argo CD
+                             │
+                             ▼
+                     Kubernetes / EKS
+                             │
+                             ▼
+                          Kyverno
+                             │
+                     ┌───────┴────────┐
+                     │                │
+                Signature OK     Digest OK
+                     │                │
+                     └───────┬────────┘
+                             ▼
+                       Pod admitted
+```
