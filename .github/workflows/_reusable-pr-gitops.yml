@@ -185,7 +185,7 @@ jobs:
           set -euo pipefail
 
           trivy config \
-            --severity HIGH,CRITICAL \
+            --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
             --exit-code 0 \
             --format table \
             "rendered/${{ inputs.component }}"
