@@ -51,6 +51,7 @@ jobs:
             "${{ github.event.pull_request.head.sha }}" 
             > changed-file.txt
 
+          echo "File changed: "
           cat changed-file.txt
           # ----------------------------------------------------------------
           # We only care about files like:
@@ -61,12 +62,6 @@ jobs:
           # ----------------------------------------------------------------
 
           # if [[ "$file" =~ ^envs/([^/]+)/values-([^/]+)\.yaml$ ]]; then
-
-          No_of_files_changed=$(cat changed-file.txt | wc -l)
-          file=$(cat changed-file.txt)
-         
-          echo "No.of files changed: $No_of_files_changed"
-          echo "file changed: $file"
 
           if [[ "$file" =~ ^envs/([^/]+)/values-(.+)\.yaml$ ]]; then
             
