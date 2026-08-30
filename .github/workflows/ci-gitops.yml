@@ -79,7 +79,7 @@ jobs:
         
             fi
         
-          done <<(
+          done < <(
             git diff --name-only \
               "${{ github.event.pull_request.base.sha }}" \
               "${{ github.event.pull_request.head.sha }}"
