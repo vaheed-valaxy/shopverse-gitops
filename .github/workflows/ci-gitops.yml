@@ -8,7 +8,7 @@ on:
       # - 'charts/**'
       - 'envs/**'
       - '.github/workflows/ci-gitops.yml'
-      - '.github/workflows/_reusable-gitops-pr.yml'
+      - '.github/workflows/_reusable-pr-gitops.yml'
 
 permissions:
   contents: read
