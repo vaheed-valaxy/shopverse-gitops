@@ -31,12 +31,26 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
 
-          {{- if .Values.livenessProbe.enabled }}
-          livenessProbe:
-            {{- toYaml (omit .Values.livenessProbe "enabled") | nindent 12 }}
-          {{- end }}
+          # {{- if .Values.livenessProbe.enabled }}
+          # livenessProbe:
+          #   {{- toYaml (omit .Values.livenessProbe "enabled") | nindent 12 }}
+          # {{- end }}
           
-          {{- if .Values.readinessProbe.enabled }}
+          # {{- if .Values.readinessProbe.enabled }}
+          # readinessProbe:
+          #   {{- toYaml (omit .Values.readinessProbe "enabled") | nindent 12 }}
+          # {{- end }}
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            
           readinessProbe:
-            {{- toYaml (omit .Values.readinessProbe "enabled") | nindent 12 }}
-          {{- end }}
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
