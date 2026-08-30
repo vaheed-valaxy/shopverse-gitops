@@ -61,11 +61,9 @@ jobs:
 
           # if [[ "$file" =~ ^envs/([^/]+)/values-([^/]+)\.yaml$ ]]; then
 
-          No_of_files_changed=$(cat changed-file.txt | wc -l)
+          echo "file changed: "
+          cat changed-file.txt
           file=$(cat changed-file.txt)
-         
-          echo "No.of files changed: $No_of_files_changed"
-          echo "file changed: $file"
 
           if [[ "$file" =~ ^envs/([^/]+)/values-(.+)\.yaml$ ]]; then
             
