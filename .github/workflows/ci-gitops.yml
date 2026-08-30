@@ -51,6 +51,7 @@ jobs:
             "${{ github.event.pull_request.head.sha }}" 
             > changed-file.txt
 
+          cat changed-file.txt
           # ----------------------------------------------------------------
           # We only care about files like:
           #
@@ -86,7 +87,7 @@ jobs:
             echo "environment=$environment" >> "$GITHUB_OUTPUT"
             echo "chart_path=$chart_path"   >> "$GITHUB_OUTPUT"
             echo "helm_values_file=$helm_values_file" >> "$GITHUB_OUTPUT"
-
+          fi 
 
   # ============================================================
   # 2. Run reusable validation workflow
