@@ -1,0 +1,105 @@
+name: GitOps CI - Helm + Kubernetes Security
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      # - 'charts/**'
+      - 'envs/**'
+      - '.github/workflows/gitops-ci-pr.yml'
+      - '.github/workflows/_reusable-gitops-pr.yml'
+
+permissions:
+  contents: read
+  pull-requests: read
+  security-events: write
+
+
+jobs:
+
+  # ============================================================
+  # 1. Find changed values files
+  # ============================================================
+
+  Detect-Changes-Job:
+    name: Detect GitOps Changes
+    runs-on: ubuntu-latest
+
+    outputs:
+      component: ${{ steps.detect.outputs.component }}
+      environment: ${{ steps.detect.outputs.environment }}
+      chart_path: ${{ steps.detect.outputs.chart_path }}
+      helm_values_file: ${{ steps.detect.outputs.helm_values_file }}
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect Changes
+        id: detect
+        shell: bash
+        run: |
+
+          set -euo pipefail
+
+          git diff --name-only \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}" 
+            > changed-file.txt
+
+          # ----------------------------------------------------------------
+          # We only care about files like:
+          #
+          # envs/dev/values-backend.yaml
+          # envs/qa/values-payment.yaml
+          # envs/prod/values-order.yaml
+          # ----------------------------------------------------------------
+
+          # if [[ "$file" =~ ^envs/([^/]+)/values-([^/]+)\.yaml$ ]]; then
+
+          No_of_files_changed=$(cat changed-file.txt | wc -l)
+          file=$(cat changed-file.txt)
+         
+          echo "No.of files changed: $No_of_files_changed"
+          echo "file changed: $file"
+
+          if [[ "$file" =~ ^envs/([^/]+)/values-(.+)\.yaml$ ]]; then
+            
+            # Extract environment and component
+            environment="${BASH_REMATCH[1]}"
+            component="${BASH_REMATCH[2]}"
+
+            # Build paths
+            chart_path="helm-charts/$component"
+            helm_values_file="$file"
+
+            echo "  Component   : $component"
+            echo "  Environment : $environment"
+            echo "  Chart       : $chart_path"
+            echo "  Values      : $values_file"
+
+            echo "component=$component"     >> "$GITHUB_OUTPUT"
+            echo "environment=$environment" >> "$GITHUB_OUTPUT"
+            echo "chart_path=$chart_path"   >> "$GITHUB_OUTPUT"
+            echo "helm_values_file=$values_file" >> "$GITHUB_OUTPUT"
+
+
+  # ============================================================
+  # 2. Run reusable validation workflow
+  # ============================================================
+
+  GitOps-Validation-Job:
+    name: ${{ matrix.component }} / ${{ matrix.environment }}
+    needs: Detect-Changes-Job
+    # if: needs.Detect-Changes.outputs.matrix != '{"include":[]}'
+    uses: ./.github/workflows/reusable-gitops-validation.yml
+    with:
+      component: ${{ matrix.component }}
+      environment: ${{ matrix.environment }}
+      chart-path: ${{ matrix.chart_path }}
+      values-file: ${{ matrix.values_file }}
+      runner: ubuntu-latest
