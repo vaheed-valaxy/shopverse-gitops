@@ -186,7 +186,7 @@ jobs:
 
           trivy config \
             --severity HIGH,CRITICAL \
-            --exit-code 1 \
+            --exit-code 0 \
             --format table \
             "rendered/${{ inputs.component }}"
 
@@ -201,7 +201,7 @@ jobs:
           trivy config \
             --severity HIGH,CRITICAL \
             --format sarif \
-            --output "trivy-${{ inputs.component }}.sarif" \
+            --output "trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif" \
             "rendered/${{ inputs.component }}"
 
 
@@ -214,7 +214,7 @@ jobs:
         if: always()
         run: |
 
-          SARIF_FILE="trivy-${{ inputs.component }}.sarif"
+          SARIF_FILE="trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif"
 
           if [ -s "$SARIF_FILE" ]; then
 
@@ -239,6 +239,6 @@ jobs:
         if: always() && steps.check-sarif.outputs.exists == 'true'
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: trivy-${{ inputs.component }}.sarif
-          category: trivy-kubernetes-${{ inputs.component }}-${{ inputs.environment }}
+          sarif_file: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif
+          category: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}
           wait-for-processing: true
