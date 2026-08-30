@@ -50,7 +50,8 @@ jobs:
             "${{ github.event.pull_request.base.sha }}" \
             "${{ github.event.pull_request.head.sha }}" 
             > changed-file.txt
-
+            
+          cat changed-file.txt
           # ----------------------------------------------------------------
           # We only care about files like:
           #
