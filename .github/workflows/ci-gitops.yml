@@ -7,7 +7,7 @@ on:
     paths:
       # - 'charts/**'
       - 'envs/**'
-      - '.github/workflows/gitops-ci-pr.yml'
+      - '.github/workflows/ci-gitops.yml'
       - '.github/workflows/_reusable-gitops-pr.yml'
 
 permissions:
@@ -93,13 +93,13 @@ jobs:
   # ============================================================
 
   GitOps-Validation-Job:
-    name: ${{ matrix.component }} / ${{ matrix.environment }}
+    name: "${{ needs.Detect-Changes-Job.outputs.component }} / ${{ needs.Detect-Changes-Job.outputs.environment }}"
     needs: Detect-Changes-Job
     # if: needs.Detect-Changes.outputs.matrix != '{"include":[]}'
     uses: ./.github/workflows/reusable-gitops-validation.yml
     with:
-      component: ${{ matrix.component }}
-      environment: ${{ matrix.environment }}
-      chart-path: ${{ matrix.chart_path }}
-      values-file: ${{ matrix.values_file }}
-      runner: ubuntu-latest
+      component: ${{ needs.Detect-Changes-Job.outputs.component }}
+      environment: ${{ needs.Detect-Changes-Job.outputs.environment }}
+      chart-path: ${{ needs.Detect-Changes-Job.outputs.chart_path }}
+      values-file: ${{ needs.Detect-Changes-Job.outputs.helm_values_file }}
+      
