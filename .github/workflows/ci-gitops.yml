@@ -90,7 +90,7 @@ jobs:
   # ============================================================
 
   GitOps-Validation-Job:
-    name: "${{ needs.Detect-Changes-Job.outputs.component }} / ${{ needs.Detect-Changes-Job.outputs.environment }}"
+    # name: "${{ needs.Detect-Changes-Job.outputs.component }} / ${{ needs.Detect-Changes-Job.outputs.environment }}"
     needs: Detect-Changes-Job
     # if: needs.Detect-Changes.outputs.matrix != '{"include":[]}'
     uses: ./.github/workflows/_reusable-pr-gitops.yml
