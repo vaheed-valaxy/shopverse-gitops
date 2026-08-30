@@ -42,7 +42,7 @@ jobs:
 
   GitOps-Validation:
 
-    name: name: ${{ inputs.component }} / ${{ inputs.environment }} - Helm + Kubernetes Security
+    name: "${{ inputs.component }} / ${{ inputs.environment }} - Helm + Kubernetes Security"
 
     runs-on: ${{ inputs.runner }}
 
