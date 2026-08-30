@@ -80,12 +80,12 @@ jobs:
             echo "  Component   : $component"
             echo "  Environment : $environment"
             echo "  Chart       : $chart_path"
-            echo "  Values      : $values_file"
+            echo "  Values      : $helm_values_file"
 
             echo "component=$component"     >> "$GITHUB_OUTPUT"
             echo "environment=$environment" >> "$GITHUB_OUTPUT"
             echo "chart_path=$chart_path"   >> "$GITHUB_OUTPUT"
-            echo "helm_values_file=$values_file" >> "$GITHUB_OUTPUT"
+            echo "helm_values_file=$helm_values_file" >> "$GITHUB_OUTPUT"
 
 
   # ============================================================
