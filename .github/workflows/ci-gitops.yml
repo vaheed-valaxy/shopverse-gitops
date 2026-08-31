@@ -93,7 +93,7 @@ jobs:
     # name: "${{ needs.Detect-Changes-Job.outputs.component }} / ${{ needs.Detect-Changes-Job.outputs.environment }}"
     needs: Detect-Changes-Job
     # if: needs.Detect-Changes.outputs.matrix != '{"include":[]}'
-    uses: ./.github/workflows/_reusable-pr-gitops.yml
+    uses: ./.github/workflows/reusable-gitops-pr.yml
     with:
       component: ${{ needs.Detect-Changes-Job.outputs.component }}
       environment: ${{ needs.Detect-Changes-Job.outputs.environment }}
