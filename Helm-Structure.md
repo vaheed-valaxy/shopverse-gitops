@@ -48,4 +48,38 @@ appVersion: "5.4.2"
 ```
 while both reuse common templates/helpers.  
 
+## What I would choose for Shopverse:  
+```text
 That's much closer to what I'd recommend for a growing microservices platform.  
+shopverse-gitops/
+│
+├── charts/
+│   │
+│   ├── shopverse-common/
+│   │
+│   ├── frontend/
+│   │   ├── Chart.yaml
+│   │   ├── values.yaml
+│   │   └── templates/
+│   │
+│   ├── backend/
+│   │   ├── Chart.yaml
+│   │   ├── values.yaml
+│   │   └── templates/
+│   │
+│   ├── product/
+│   ├── cart/
+│   ├── user/
+│   ├── order/
+│   └── notification/
+│
+└── envs/
+    ├── dev/
+    │   ├── values-frontend.yaml
+    │   ├── values-backend.yaml
+    │   ├── values-product.yaml
+    │   └── ...
+    │
+    ├── qa/
+    └── prod/
+```
