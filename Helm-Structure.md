@@ -83,3 +83,34 @@ shopverse-gitops/
     ├── qa/
     └── prod/
 ```
+## The architecture I would settle on for Shopverse  
+```text
+                    SHOPVERSE GITOPS
+                           │
+             ┌─────────────┴─────────────┐
+             │                           │
+        Helm Charts                  Environments
+             │                           │
+             │                    ┌──────┼──────┐
+             │                    │      │      │
+             │                   dev     qa    prod
+             │
+      ┌──────┴─────────┐
+      │                │
+      ▼                ▼
+shopverse-common   application charts
+ library chart           │
+                         │
+                 ┌───────┴────────┐
+                 │                │
+                 ▼                ▼
+          shopverse-backend  shopverse-frontend
+             chart 1.x          chart 1.x
+                 │                │
+                 │                │
+                 ▼                ▼
+              Argo CD          Argo CD
+                 │                │
+                 ▼                ▼
+              EKS backend      EKS frontend
+```
