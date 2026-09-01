@@ -1,12 +1,17 @@
+{{- if .Values.configmap.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Values.configmap.name }}                         # shopverse-config
-  namespace: {{ .Values.namespace }}                         # shopverse-dev
+  # namespace: {{ .Values.namespace }}                       # shopverse-dev
+  {{- with .Values.labels }}
   labels:
-    app: shopverse
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- if .Values.configmap.values }}
 data:
-  DB_HOST: {{ .Values.mysql.externalNameService | quote }}   # "shopverse-mysql-ens"
-  DB_PORT: {{ .Values.mysql.port | quote }}                  # "3306"
-  DB_NAME: {{ .Values.mysql.database | quote }}              # "shopverse"
-  FRONTEND_ORIGIN: "*"                                       # "http://frontend-svc:8080"
+  {{- range $key, $value := .Values.configmap.values }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}
+{{- end }}
