@@ -169,8 +169,10 @@ jobs:
           kubeconform \
             -strict \
             -summary \
-            -output text \
+            -output tap \
             "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
+
+          # output text pretty
 
 
       # ======================================================
