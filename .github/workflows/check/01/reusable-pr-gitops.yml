@@ -1,0 +1,392 @@
+name: Reusable - GitOps Helm + Kubernetes Security
+
+
+on:
+
+  workflow_call:
+
+    inputs:
+
+      # ----------------------------------------------------------
+      # Application name
+      # ----------------------------------------------------------
+
+      component:
+        description: "Application component name"
+        required: true
+        type: string
+
+
+      # ----------------------------------------------------------
+      # Environment
+      # ----------------------------------------------------------
+
+      environment:
+        description: "Deployment environment"
+        required: true
+        type: string
+
+
+      # ----------------------------------------------------------
+      # Helm chart
+      # ----------------------------------------------------------
+
+      chart-path:
+        description: "Path to application Helm chart"
+        required: true
+        type: string
+
+
+      # ----------------------------------------------------------
+      # Environment values
+      # ----------------------------------------------------------
+
+      values-file:
+        description: "Path to environment values file"
+        required: true
+        type: string
+
+
+      # ----------------------------------------------------------
+      # Runner
+      # ----------------------------------------------------------
+
+      runner:
+        description: "GitHub Actions runner"
+        required: false
+        type: string
+        default: ubuntu-latest
+
+
+# ================================================================
+# Tool versions
+# ================================================================
+
+env:
+
+  HELM_VERSION: v3.19.0
+
+  TRIVY_VERSION: v0.72.0
+
+  KUBECONFORM_VERSION: v0.7.0
+
+
+jobs:
+
+  GitOps-Validation:
+
+    name: "${{ inputs.component }} - ${{ inputs.environment }}"
+
+    runs-on: ${{ inputs.runner }}
+
+
+    # ============================================================
+    # Permissions
+    # ============================================================
+
+    permissions:
+
+      contents: read
+
+      pull-requests: read
+
+      security-events: write
+
+
+    steps:
+
+
+      # ==========================================================
+      # Checkout PR
+      # ==========================================================
+
+      - name: Checkout GitOps Repository
+
+        uses: actions/checkout@v6
+
+        with:
+
+          ref: ${{ github.event.pull_request.head.sha }}
+
+          fetch-depth: 0
+
+
+      # ==========================================================
+      # Display information
+      # ==========================================================
+
+      - name: Show Validation Target
+
+        run: |
+
+          echo "=================================================="
+          echo "GitOps Validation"
+          echo "=================================================="
+
+          echo "Component   : ${{ inputs.component }}"
+
+          echo "Environment : ${{ inputs.environment }}"
+
+          echo "Chart       : ${{ inputs.chart-path }}"
+
+          echo "Values      : ${{ inputs.values-file }}"
+
+          echo "=================================================="
+
+
+      # ==========================================================
+      # Setup Helm
+      # ==========================================================
+
+      - name: Setup Helm
+
+        uses: azure/setup-helm@v4
+
+        with:
+
+          version: ${{ env.HELM_VERSION }}
+
+
+      # ==========================================================
+      # Build Helm dependencies
+      #
+      # IMPORTANT:
+      #
+      # We use dependency build instead of dependency update.
+      #
+      # build uses Chart.lock when available and does not
+      # unexpectedly upgrade dependencies.
+      # ==========================================================
+
+      - name: Build Helm Dependencies
+
+        run: |
+
+          set -euo pipefail
+
+          helm dependency build \
+            "${{ inputs.chart-path }}"
+
+
+      # ==========================================================
+      # Helm lint
+      # ==========================================================
+
+      - name: Helm Lint
+
+        run: |
+
+          set -euo pipefail
+
+          helm lint \
+            "${{ inputs.chart-path }}" \
+            --values "${{ inputs.values-file }}"
+
+
+      # ==========================================================
+      # Render Helm templates
+      # ==========================================================
+
+      - name: Render Helm Manifests
+
+        run: |
+
+          set -euo pipefail
+
+
+          OUTPUT_DIR="rendered/${{ inputs.component }}/${{ inputs.environment }}"
+
+
+          mkdir -p "$OUTPUT_DIR"
+
+
+          helm template \
+            "${{ inputs.component }}" \
+            "${{ inputs.chart-path }}" \
+            --values "${{ inputs.values-file }}" \
+            > "${OUTPUT_DIR}/${{ inputs.component }}.yaml"
+
+
+          echo ""
+          echo "Helm rendering completed."
+
+          echo "Rendered file:"
+          echo "${OUTPUT_DIR}/${{ inputs.component }}.yaml"
+
+
+      # ==========================================================
+      # Show rendered manifests
+      # ==========================================================
+
+      - name: Show Rendered Manifests
+
+        run: |
+
+          echo "=================================================="
+
+          echo "Rendered Kubernetes Manifests"
+
+          echo "Component   : ${{ inputs.component }}"
+
+          echo "Environment : ${{ inputs.environment }}"
+
+          echo "=================================================="
+
+
+          cat \
+            "rendered/${{ inputs.component }}/${{ inputs.environment }}/${{ inputs.component }}.yaml"
+
+
+      # ==========================================================
+      # Install Kubeconform
+      # ==========================================================
+
+      - name: Install Kubeconform
+
+        run: |
+
+          set -euo pipefail
+
+
+          KUBECONFORM_URL="https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+
+
+          echo "Downloading Kubeconform ${KUBECONFORM_VERSION}..."
+
+
+          curl -fsSL \
+            "$KUBECONFORM_URL" \
+            -o /tmp/kubeconform.tar.gz
+
+
+          tar -xzf \
+            /tmp/kubeconform.tar.gz \
+            -C /tmp
+
+
+          sudo install \
+            /tmp/kubeconform \
+            /usr/local/bin/kubeconform
+
+
+          kubeconform -v
+
+
+      # ==========================================================
+      # Kubernetes schema validation
+      # ==========================================================
+
+      - name: Kubeconform - Kubernetes Schema Validation
+
+        run: |
+
+          set -euo pipefail
+
+
+          kubeconform \
+            -strict \
+            -summary \
+            "rendered/${{ inputs.component }}/${{ inputs.environment }}/${{ inputs.component }}.yaml"
+
+
+      # ==========================================================
+      # Setup Trivy
+      # ==========================================================
+
+      - name: Setup Trivy
+
+        uses: aquasecurity/setup-trivy@v0.2.6
+
+        with:
+
+          version: ${{ env.TRIVY_VERSION }}
+
+
+      # ==========================================================
+      # Trivy Kubernetes configuration scan
+      # ==========================================================
+
+      - name: Trivy - Kubernetes Manifest Security Scan
+
+        run: |
+
+          set -euo pipefail
+
+
+          trivy config \
+            --severity MEDIUM,HIGH,CRITICAL \
+            --exit-code 0 \
+            --format table \
+            "rendered/${{ inputs.component }}/${{ inputs.environment }}"
+
+
+      # ==========================================================
+      # Generate Trivy SARIF
+      # ==========================================================
+
+      - name: Generate Trivy SARIF
+
+        if: always()
+
+        run: |
+
+          set -euo pipefail
+
+
+          SARIF_FILE="trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif"
+
+
+          trivy config \
+            --severity HIGH,CRITICAL \
+            --format sarif \
+            --output "$SARIF_FILE" \
+            "rendered/${{ inputs.component }}/${{ inputs.environment }}"
+
+
+      # ==========================================================
+      # Check SARIF
+      # ==========================================================
+
+      - name: Check Trivy SARIF
+
+        id: check-sarif
+
+        if: always()
+
+        run: |
+
+          SARIF_FILE="trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif"
+
+
+          if [[ -s "$SARIF_FILE" ]]; then
+
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+
+            echo "SARIF file exists."
+
+          else
+
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+
+            echo "SARIF file does not exist or is empty."
+
+          fi
+
+
+      # ==========================================================
+      # Upload SARIF to GitHub
+      # ==========================================================
+
+      - name: Upload Trivy SARIF
+
+        if: always() && steps.check-sarif.outputs.exists == 'true'
+
+        uses: github/codeql-action/upload-sarif@v4
+
+        with:
+
+          sarif_file: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif
+
+          category: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}
+
+          wait-for-processing: true
