@@ -1,0 +1,461 @@
+name: GitOps PR - Helm + Kubernetes Security
+
+on:
+  pull_request:
+    branches:
+      - main
+
+    paths:
+      - 'charts/**'
+      - 'envs/**'
+      - '.github/workflows/ci-gitops.yml'
+      - '.github/workflows/reusable-gitops-pr.yml'
+
+
+# ==============================================================
+# Permissions
+# ==============================================================
+
+permissions:
+  contents: read
+  pull-requests: read
+  security-events: write
+
+
+jobs:
+
+  # ==============================================================
+  # Detect affected applications and environments
+  # ==============================================================
+
+  Detect-Changes:
+
+    name: Detect GitOps Changes
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+
+
+    steps:
+
+      # ----------------------------------------------------------
+      # Checkout repository
+      # ----------------------------------------------------------
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+
+      # ----------------------------------------------------------
+      # Install yq
+      #
+      # Used to inspect Chart.yaml dependencies.
+      # ----------------------------------------------------------
+
+      - name: Install yq
+        run: |
+
+          set -euo pipefail
+
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+
+          sudo chmod +x /usr/local/bin/yq
+
+          yq --version
+
+
+      # ----------------------------------------------------------
+      # Detect changes
+      # ----------------------------------------------------------
+
+      - name: Detect Changes
+        id: detect
+        shell: bash
+
+        run: |
+
+          set -euo pipefail
+
+
+          # ======================================================
+          # Get changed files
+          # ======================================================
+
+          CHANGED_FILES=$(git diff --name-only \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}")
+
+
+          echo "Changed files:"
+          echo "----------------------------------------"
+          echo "$CHANGED_FILES"
+          echo "----------------------------------------"
+
+
+          # ======================================================
+          # Temporary file containing affected targets
+          #
+          # Format:
+          #
+          # component|environment|values-file
+          #
+          # Example:
+          #
+          # shopverse-backend|dev|envs/dev/values-backend.yaml
+          # ======================================================
+
+          TARGETS_FILE=$(mktemp)
+
+          trap 'rm -f "$TARGETS_FILE"' EXIT
+
+
+          # ======================================================
+          # Process every changed file
+          # ======================================================
+
+          while read -r file; do
+
+            [[ -z "$file" ]] && continue
+
+
+            # ====================================================
+            # CASE 1
+            #
+            # Environment values file changed
+            #
+            # Example:
+            #
+            # envs/dev/values-backend.yaml
+            #
+            # Result:
+            #
+            # component   = shopverse-backend
+            # environment = dev
+            # ====================================================
+
+            if [[ "$file" =~ ^envs/([^/]+)/values-(.+)\.yaml$ ]]; then
+
+              environment="${BASH_REMATCH[1]}"
+              service="${BASH_REMATCH[2]}"
+
+              component="shopverse-${service}"
+
+              echo ""
+              echo "Values file changed:"
+              echo "  File        : $file"
+              echo "  Component   : $component"
+              echo "  Environment : $environment"
+
+              echo "${component}|${environment}|${file}" \
+                >> "$TARGETS_FILE"
+
+              continue
+
+            fi
+
+
+            # ====================================================
+            # CASE 2
+            #
+            # Application Helm chart changed
+            #
+            # Example:
+            #
+            # charts/shopverse-backend/templates/deployment.yaml
+            #
+            # Result:
+            #
+            # component = shopverse-backend
+            #
+            # Run validation for:
+            #
+            # dev
+            # qa
+            # prod
+            # ====================================================
+
+            if [[ "$file" =~ ^charts/(shopverse-[^/]+)/ ]]; then
+
+              component="${BASH_REMATCH[1]}"
+
+
+              # ------------------------------------------------
+              # shopverse-common is handled separately
+              # ------------------------------------------------
+
+              if [[ "$component" != "shopverse-common" ]]; then
+
+                echo ""
+                echo "Application chart changed:"
+                echo "  File      : $file"
+                echo "  Component : $component"
+
+
+                for environment in dev qa prod; do
+
+                  values_file="envs/${environment}/values-${component#shopverse-}.yaml"
+
+
+                  # --------------------------------------------
+                  # Only add target if its values file exists
+                  # --------------------------------------------
+
+                  if [[ -f "$values_file" ]]; then
+
+                    echo "${component}|${environment}|${values_file}" \
+                      >> "$TARGETS_FILE"
+
+                  else
+
+                    echo ""
+                    echo "WARNING:"
+                    echo "Values file does not exist:"
+                    echo "  $values_file"
+
+                  fi
+
+                done
+
+              fi
+
+            fi
+
+          done <<< "$CHANGED_FILES"
+
+
+          # ======================================================
+          # CASE 3
+          #
+          # Common Helm chart changed
+          # ======================================================
+
+          COMMON_CHANGED=false
+
+
+          if echo "$CHANGED_FILES" | grep -q '^charts/shopverse-common/'; then
+
+            COMMON_CHANGED=true
+
+            echo ""
+            echo "=================================================="
+            echo "Common Helm chart changed"
+            echo "=================================================="
+
+          fi
+
+
+          # ======================================================
+          # Find all applications depending on common
+          # ======================================================
+
+          if [[ "$COMMON_CHANGED" == "true" ]]; then
+
+            echo ""
+            echo "Finding applications that depend on:"
+            echo "  shopverse-common"
+            echo ""
+
+
+            for chart_file in charts/*/Chart.yaml; do
+
+              component=$(dirname "$chart_file" | xargs basename)
+
+
+              # ------------------------------------------------
+              # Skip common chart itself
+              # ------------------------------------------------
+
+              if [[ "$component" == "shopverse-common" ]]; then
+                continue
+              fi
+
+
+              # ------------------------------------------------
+              # Check Chart.yaml dependencies
+              # ------------------------------------------------
+
+              if yq -e \
+                '.dependencies[]? | select(.name == "shopverse-common")' \
+                "$chart_file" \
+                > /dev/null; then
+
+
+                echo "Found consumer:"
+                echo "  $component"
+
+
+                # ----------------------------------------------
+                # Common changed.
+                #
+                # Validate this application in every environment
+                # ----------------------------------------------
+
+                for environment in dev qa prod; do
+
+                  values_file="envs/${environment}/values-${component#shopverse-}.yaml"
+
+
+                  if [[ -f "$values_file" ]]; then
+
+                    echo "${component}|${environment}|${values_file}" \
+                      >> "$TARGETS_FILE"
+
+                  else
+
+                    echo ""
+                    echo "WARNING:"
+                    echo "Values file does not exist:"
+                    echo "  $values_file"
+
+                  fi
+
+                done
+
+              fi
+
+            done
+
+          fi
+
+
+          # ======================================================
+          # Remove duplicate targets
+          # ======================================================
+
+          sort -u "$TARGETS_FILE" \
+            -o "$TARGETS_FILE"
+
+
+          # ======================================================
+          # Display final targets
+          # ======================================================
+
+          echo ""
+          echo "=================================================="
+          echo "Affected Targets"
+          echo "=================================================="
+
+
+          if [[ -s "$TARGETS_FILE" ]]; then
+
+            cat "$TARGETS_FILE"
+
+          else
+
+            echo "No application targets found."
+
+          fi
+
+
+          # ======================================================
+          # Convert targets to GitHub Actions matrix JSON
+          #
+          # Example:
+          #
+          # {
+          #   "include": [
+          #     {
+          #       "component": "shopverse-backend",
+          #       "environment": "dev",
+          #       "values_file": "envs/dev/values-backend.yaml"
+          #     }
+          #   ]
+          # }
+          # ======================================================
+
+          MATRIX=$(python3 - "$TARGETS_FILE" <<'PY'
+
+          import json
+          import sys
+
+          targets_file = sys.argv[1]
+
+          targets = []
+
+          with open(targets_file) as f:
+
+              for line in f:
+
+                  line = line.strip()
+
+                  if not line:
+                      continue
+
+                  component, environment, values_file = line.split("|", 2)
+
+                  targets.append({
+                      "component": component,
+                      "environment": environment,
+                      "values_file": values_file
+                  })
+
+
+          print(json.dumps({
+              "include": targets
+          }))
+
+          PY
+          )
+
+
+          # ======================================================
+          # Send matrix to GitHub Actions
+          # ======================================================
+
+          echo ""
+          echo "Generated matrix:"
+          echo "$MATRIX"
+
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+
+  # ==============================================================
+  # Run Helm + Kubernetes security validation
+  # ==============================================================
+
+  GitOps-Validation:
+
+    name: Helm + Kubernetes Validation
+
+    needs:
+      - Detect-Changes
+
+
+    # ------------------------------------------------------------
+    # Don't run if no application was affected
+    # ------------------------------------------------------------
+
+    if: needs.Detect-Changes.outputs.matrix != '{"include":[]}'
+
+
+    strategy:
+
+      fail-fast: false
+
+      matrix:
+        include: ${{ fromJSON(needs.Detect-Changes.outputs.matrix).include }}
+
+
+    # ------------------------------------------------------------
+    # Call reusable workflow
+    # ------------------------------------------------------------
+
+    uses: ./.github/workflows/reusable-gitops-pr.yml
+
+
+    with:
+
+      component: ${{ matrix.component }}
+
+      environment: ${{ matrix.environment }}
+
+      chart-path: charts/${{ matrix.component }}
+
+      values-file: ${{ matrix.values_file }}
+
+      runner: ubuntu-latest
