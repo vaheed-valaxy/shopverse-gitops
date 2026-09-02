@@ -46,3 +46,13 @@ shopverse-gitops/
         ├── values-backend.yaml
         └── values-frontend.yaml
 ```
+The important distinction is: 
+```text
+shopverse-common
+        │
+        ├───────────────┐
+        ▼               ▼
+shopverse-backend   shopverse-frontend
+   chart v1.x           chart v2.x
+```
+The backend and frontend do not share a chart version.  
