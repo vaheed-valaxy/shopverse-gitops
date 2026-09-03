@@ -1,1 +1,55 @@
+namespace: default
 
+image: {}
+deployment: {}
+service: {}
+labels: {}
+
+imagePullPolicy: IfNotPresent
+terminationGracePeriodSeconds: 30
+
+configmap: {}
+secret: {}
+
+env:
+  enabled: false
+  values: []
+
+envFrom:
+  enabled: false
+  values: []
+
+imagePullSecrets:
+  enabled: false
+  values: []
+
+podAnnotations:
+  enabled: false
+  values: {}
+
+podSecurityContext:
+  enabled: false
+  values: {}
+
+containerSecurityContext:
+  enabled: false
+  values: {}
+
+resources:
+  enabled: false
+  values: {}
+
+probes:
+  livenessProbe:
+    enabled: false
+    values: {}
+  readinessProbe:
+    enabled: false
+    values: {}
+  startupProbe:
+    enabled: false
+    values: {}
+
+autoscaling:
+  enabled: false
+  values: {}
