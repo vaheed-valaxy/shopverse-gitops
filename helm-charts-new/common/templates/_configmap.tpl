@@ -1,4 +1,4 @@
-{{- define "common.service" }}
+{{- define "common.configmap" }}
 
 {{- if .Values.configmap.enabled }}
 apiVersion: v1
