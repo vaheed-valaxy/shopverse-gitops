@@ -9,19 +9,23 @@ shopverse-gitops/
 │   │   ├── values.yaml
 │   │   └── templates/
 │   │       ├── _helpers.tpl
-│   │       ├── deployment.yaml
-│   │       ├── service.yaml
-│   │       ├── configmap.yaml
-│   │       ├── hpa.yaml
-│   │       └── serviceaccount.yaml
+│   │       ├── _deployment.tpl
+│   │       ├── _service.tpl
+│   │       ├── _configmap.tpl
+│   │       ├── _hpa.tpl
+│   │       └── _serviceaccount.tpl
 │   │
 │   ├── backend/
 │   │   ├── Chart.yaml
-│   │   └── values.yaml
+|   |   ├── values.yaml
+│   │   └── templates/
+│   │       └── resources.yaml
 │   │
 │   └── frontend/
 │       ├── Chart.yaml
-│       └── values.yaml
+|       ├── values.yaml
+│       └── templates/
+|           └── resources.yaml      
 │
 └── envs/
     │
