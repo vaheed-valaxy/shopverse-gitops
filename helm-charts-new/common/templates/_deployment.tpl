@@ -1,3 +1,5 @@
+{{- define "common.deployment" }}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -157,3 +159,5 @@ spec:
       {{- toYaml .values | nindent 8 }}
       {{- end }}
       {{- end }}
+
+{{- end }}
