@@ -64,7 +64,7 @@ jobs:
                 environment="${BASH_REMATCH[1]}"
                 component="${BASH_REMATCH[2]}"
         
-                chart_path="helm-charts/$environment/$component"
+                chart_path="helm-charts-new/$environment/$component"
                 helm_values_file="$file"
         
                 echo "Component   : $component"
