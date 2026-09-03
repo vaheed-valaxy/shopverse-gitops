@@ -1,0 +1,9 @@
+{{ include "common.configmap" . }}
+---
+{{ include "common.serviceaccount" . }}
+---
+{{ include "common.deployment" . }}
+---
+{{ include "common.service" . }}
+---
+{{ include "common.hpa" . }}
