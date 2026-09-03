@@ -5,8 +5,8 @@
 # namespace: shopverse-dev
 #--------------- Container --------------------------#
 image:
-  uri: 254405569649.dkr.ecr.us-east-1.amazonaws.com
-  name: shopverse-frontend
+  ecr_registry: 254405569649.dkr.ecr.us-east-1.amazonaws.com
+  ecr_repository: shopverse-frontend
   version: v1
   digest:
   
