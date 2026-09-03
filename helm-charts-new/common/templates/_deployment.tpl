@@ -30,7 +30,8 @@ spec:
       {{- if and .enabled (or .enable_checksum .values) }}
       annotations:
       {{- if .enable_checksum }}
-        checksum/config: {{ include (print $.Template.BasePath "/" .checksum_file) $ | sha256sum }}
+        # checksum/config: {{ include (print $.Template.BasePath "/" .checksum_file) $ | sha256sum }}
+        checksum/config: {{ include "common.configmap" . | sha256sum }}
       {{- end }}
       {{- with .values }}
       {{- toYaml . | nindent 8 }}
