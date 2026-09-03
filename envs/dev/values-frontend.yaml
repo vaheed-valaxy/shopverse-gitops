@@ -1,4 +1,8 @@
-namespace: shopverse-dev
+# ───────────────────────────────────────────────────
+#                    BACKEND
+# ───────────────────────────────────────────────────
+
+# namespace: shopverse-dev
 #--------------- Container --------------------------#
 image:
   uri: 254405569649.dkr.ecr.us-east-1.amazonaws.com
