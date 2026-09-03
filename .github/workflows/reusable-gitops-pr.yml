@@ -74,7 +74,9 @@ jobs:
           version: ${{ env.HELM_VERSION }}
 
       - name: Build Helm Dependencies
-        run: helm dependency build ./helm-charts-new/${{ inputs.component }}
+        run: |
+          echo "Chart_Path: ${{ inputs.chart-path }}"
+          helm dependency build "${{ inputs.chart-path }}"    #./helm-charts-new/${{ inputs.component }}
 
 
       # ======================================================
