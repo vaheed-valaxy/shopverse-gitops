@@ -8,8 +8,7 @@ image:
   ecr_registry: 254405569649.dkr.ecr.us-east-1.amazonaws.com
   ecr_repository: shopverse/backend
   tag: v1
-  digest:
-
+  digest: sha256:d8e8a432ab9dd53ef92ca5efe18dddbc8afbef4331bd86107d8ebe93e1984ffd
 containerName: backend
 imagePullPolicy: Always
 terminationGracePeriodSeconds: 30
@@ -43,7 +42,6 @@ podSecurityContext:
     fsGroup: 2000
     runAsNonRoot: true
     runAsUser: 1000
-
 containerSecurityContext:
   enabled: true
   values:
@@ -62,26 +60,24 @@ configmap:
     DB_HOST: ""
     DB_PORT: "3306"
     DB_NAME: "shopverse"
-    FRONTEND_ORIGIN: "*"        
-
+    FRONTEND_ORIGIN: "*"
 secret:
   name: db-credentials
-  create: false    # Creates through ESO    
-  
+  create: false # Creates through ESO    
 envFrom:
   enabled: true
   values:
     - configMapRef:
         name: backend-configmap
     - secretRef:
-        name: db-credentials    # Creates through ESO   
+        name: db-credentials # Creates through ESO   
 #--------------- Limits & Requests ------------------#
 resources:
   enabled: true
   values:
-    requests: 
+    requests:
       cpu: "100m"
-      memory: "128Mi" 
+      memory: "128Mi"
     limits:
       cpu: "200m"
       memory: "256Mi"
@@ -94,7 +90,6 @@ startupProbe:
       port: 8080
     failureThreshold: 10
     periodSeconds: 10
-  
 readinessProbe:
   enabled: true
   values:
@@ -102,8 +97,7 @@ readinessProbe:
       path: /health
       port: 8080
     initialDelaySeconds: 15
-    periodSeconds: 10         
-
+    periodSeconds: 10
 livenessProbe:
   enabled: true
   values:
