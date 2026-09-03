@@ -1,12 +1,14 @@
 # ───────────────────────────────────────────────────
 #                    BACKEND
 # ───────────────────────────────────────────────────
+
 # namespace: shopverse-dev
 #--------------- Container --------------------------#
 image:
   uri: 254405569649.dkr.ecr.us-east-1.amazonaws.com
   name: shopverse-backend
   version: v1
+  digest:
 
 containerName: backend
 imagePullPolicy: Always
