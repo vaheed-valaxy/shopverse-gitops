@@ -1,5 +1,5 @@
 {{- define "shopverse.backend.image" -}}
-{{ printf "%s/%s:%s" .Values.image.uri .Values.image.name .Values.image.version }}
+{{ printf "%s/%s:%s" .Values.image.ecr_registry .Values.image.ecr_repository .Values.image.digest }}
 {{- end }}
 
 {{- define "shopverse.labels" }}
