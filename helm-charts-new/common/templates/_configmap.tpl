@@ -1,3 +1,5 @@
+{{- define "common.service" }}
+
 {{- if .Values.configmap.enabled }}
 apiVersion: v1
 kind: ConfigMap
@@ -14,4 +16,6 @@ data:
   {{ $key }}: {{ $value | quote }}
   {{- end }}
 {{- end }}
+{{- end }}
+
 {{- end }}
