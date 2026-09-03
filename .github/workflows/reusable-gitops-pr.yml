@@ -73,8 +73,8 @@ jobs:
         with:
           version: ${{ env.HELM_VERSION }}
 
-      # - name: Build Helm Dependencies
-      #   run: helm dependency build ./helm-charts-new/${{ inputs.component }}
+      - name: Build Helm Dependencies
+        run: helm dependency build ./helm-charts-new/${{ inputs.component }}
 
 
       # ======================================================
