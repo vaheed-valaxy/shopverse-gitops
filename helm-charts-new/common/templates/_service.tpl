@@ -1,3 +1,5 @@
+{{- define "common.service" }}
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -17,3 +19,5 @@ spec:
   selector:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+
+{{- end }}
