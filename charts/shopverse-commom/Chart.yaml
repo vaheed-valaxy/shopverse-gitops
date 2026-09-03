@@ -1,5 +1,0 @@
-apiVersion: v2
-name: shopverse-common
-description: Shared Helm library chart for Shopverse microservices
-type: library
-version: 1.0.0
