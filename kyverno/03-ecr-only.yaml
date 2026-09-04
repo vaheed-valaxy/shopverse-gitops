@@ -1,0 +1,32 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+
+metadata:
+  name: allow-ecr-only
+
+spec:
+  validationActions:
+    - Deny
+
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - apps
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - deployments
+
+  validations:
+    - expression: >-
+        object.spec.template.spec.containers.size() > 0 &&
+        object.spec.template.spec.containers[0].image.matches(
+          '^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/.+$'
+        )
+
+      message: >-
+        The main container image must come from an AWS ECR registry.
+        Images from Docker Hub, GHCR, and other registries are not allowed.
