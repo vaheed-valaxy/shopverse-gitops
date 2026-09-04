@@ -1,0 +1,31 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: enforce-main-container-image-digest
+
+spec:
+  validationActions:
+    - Deny
+
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - apps
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - deployments
+
+  validations:
+    - expression: >-
+        object.spec.template.spec.containers.size() > 0 &&
+        object.spec.template.spec.containers[0].image.matches(
+          '^.+@sha256:[a-fA-F0-9]{64}$'
+        )
+
+      message: >-
+        The main container image must use a SHA256 digest.
+        Image tags such as :latest or :v1.2.3 are not allowed.
