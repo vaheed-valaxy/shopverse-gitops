@@ -1,0 +1,32 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+
+metadata:
+  name: allow-specific-ecr-registry
+
+spec:
+  validationActions:
+    - Deny
+
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - apps
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - deployments
+
+  validations:
+    - expression: >-
+        object.spec.template.spec.containers.size() > 0 &&
+        object.spec.template.spec.containers[0].image.startsWith(
+          '123456789012.dkr.ecr.ap-south-1.amazonaws.com/'
+        )
+
+      message: >-
+        The main container image must come from the approved AWS ECR registry:
+        123456789012.dkr.ecr.ap-south-1.amazonaws.com
