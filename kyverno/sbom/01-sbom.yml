@@ -106,6 +106,12 @@ spec:
             - issuer: "https://token.actions.githubusercontent.com"
               subjectRegExp: "^https://github\\.com/vaheed-valaxy/shopverse-backend/.github/workflows/.*@refs/heads/develop$"
 
+            # --------------------------------------------------
+            # Entire GitHub Organization (vaheed-valaxy)
+            # --------------------------------------------------
+            # - issuer: "https://token.actions.githubusercontent.com"
+            #   subjectRegExp: "^https://github\\.com/vaheed-valaxy/.+/.github/workflows/.*@refs/heads/develop$"  (Trust entire github org 'vaheed-valaxy')
+
           # ----------------------------------------------------
           # Sigstore Rekor transparency log
           # ----------------------------------------------------
