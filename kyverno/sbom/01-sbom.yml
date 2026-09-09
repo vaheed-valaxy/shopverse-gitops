@@ -10,19 +10,24 @@ metadata:
 spec:
 
   # ============================================================
-  # Validation action
+  # Reject the Deployment if validation fails
   # ============================================================
   validationActions:
     - Deny
 
+  # ============================================================
+  # Fail closed if Kyverno cannot evaluate the policy
+  # ============================================================
   failurePolicy: Fail
 
+  # ============================================================
+  # Admission webhook configuration
+  # ============================================================
   webhookConfiguration:
     timeoutSeconds: 30
 
   # ============================================================
-  # Background scanning disabled
-  # SBOM validation happens during admission
+  # Admission-time validation only
   # ============================================================
   evaluation:
     background:
