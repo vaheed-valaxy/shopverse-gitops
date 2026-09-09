@@ -20,7 +20,7 @@ spec:
               repoUrl: https://github.com/vaheed-valaxy/shopverse-gitops.git
               revision: main
               directories:
-                - path: envs/dev/helm/*
+                - path: envs/dev/helm-charts-new/*
   
   # Application template
   template:
@@ -41,7 +41,7 @@ spec:
         repoURL: "{{repoURL}}"
         targetRevision: main
         # Dynamic env + service
-        path: "envs/{{env}}/helm/{{path.basename}}"
+        path: "envs/{{env}}/helm-charts-new/{{path.basename}}"
         helm:
           releaseName: "{{project}}-{{env}}-{{path.basename}}"  # must be <= 53 chars
           valueFiles:
