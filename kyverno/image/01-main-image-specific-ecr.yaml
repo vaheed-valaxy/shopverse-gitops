@@ -7,15 +7,25 @@ metadata:
 spec:
 
   # ============================================================
-  # Reject deployments that don't satisfy this policy
+  # Reject the Deployment if validation fails
   # ============================================================
   validationActions:
     - Deny
 
-  # If Kyverno cannot evaluate the policy, fail closed.
+  # ============================================================
+  # Fail closed if Kyverno cannot evaluate the policy
+  # ============================================================
   failurePolicy: Fail
 
- # Admission time policy only
+  # ============================================================
+  # Admission webhook configuration
+  # ============================================================
+  webhookConfiguration:
+    timeoutSeconds: 30
+    
+  # ============================================================
+  # Admission-time validation only
+  # ============================================================
   evaluation:
     background:
       enabled: false
