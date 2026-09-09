@@ -2,25 +2,48 @@ apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
 
 metadata:
-  name: allow-specific-ecr-registry
+  name: enforce-main-container-ecr-registry
 
 spec:
+
+  # ============================================================
+  # Reject deployments that don't satisfy this policy
+  # ============================================================
   validationActions:
     - Deny
 
+  # If Kyverno cannot evaluate the policy, fail closed.
+  failurePolicy: Fail
+
+  # ============================================================
+  # Resources to validate
+  # ============================================================
   matchConstraints:
+
     resourceRules:
+
       - apiGroups:
           - apps
+
         apiVersions:
           - v1
+
         operations:
           - CREATE
           - UPDATE
+
         resources:
           - deployments
 
+  # ============================================================
+  # Validation
+  #
+  # Only the MAIN container is checked:
+  #
+  # spec.template.spec.containers[0]
+  # ============================================================
   validations:
+
     - expression: >-
         object.spec.template.spec.containers.size() > 0 &&
         object.spec.template.spec.containers[0].image.startsWith(
@@ -28,5 +51,6 @@ spec:
         )
 
       message: >-
-        The main container image must come from the approved AWS ECR registry:
+        The main container image must come from the approved
+        AWS ECR registry:
         123456789012.dkr.ecr.ap-south-1.amazonaws.com
