@@ -15,6 +15,11 @@ spec:
   # If Kyverno cannot evaluate the policy, fail closed.
   failurePolicy: Fail
 
+ # Admission time policy only
+  evaluation:
+    background:
+      enabled: false
+
   # ============================================================
   # Resources to validate
   # ============================================================
