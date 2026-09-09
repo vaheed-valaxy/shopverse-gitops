@@ -1,0 +1,62 @@
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+
+metadata:
+  name: verify-main-container-signature
+
+spec:
+  validationActions:
+    - Deny
+
+  failurePolicy: Fail
+
+  webhookConfiguration:
+    timeoutSeconds: 30
+
+  evaluation:
+    background:
+      enabled: false
+
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - apps
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - deployments
+
+  matchImageReferences:
+    - glob: "123456789012.dkr.ecr.ap-south-1.amazonaws.com/*"
+
+  attestors:
+    - name: github-actions
+
+      cosign:
+        keyless:
+          identities:
+            - issuer: "https://token.actions.githubusercontent.com"
+              subjectRegExp: "^https://github\\.com/vaheed-valaxy/shopverse-frontend/.github/workflows/.*@refs/heads/develop$"
+          
+            - issuer: "https://token.actions.githubusercontent.com"
+              subjectRegExp: "^https://github\\.com/vaheed-valaxy/shopverse-backend/.github/workflows/.*@refs/heads/develop$"
+
+              # subjectRegExp: "^https://github\\.com/vaheed-valaxy/.+/.github/workflows/.*@refs/heads/develop$"  (Trust entire github repo 'vaheed-valaxy')
+
+          ctlog:
+            url: "https://rekor.sigstore.dev"
+
+  validations:
+    - expression: >-
+        object.spec.template.spec.containers.size() > 0 &&
+        verifyImageSignatures(
+          object.spec.template.spec.containers[0].image,
+          [attestors.github-actions]
+        ) > 0
+
+      message: >-
+        The main container image must have a valid Cosign keyless signature
+        created by the approved GitHub Actions workflow on the develop branch.
