@@ -9,14 +9,26 @@ metadata:
 
 spec:
 
+  # ============================================================
+  # Reject the Deployment if validation fails
+  # ============================================================
   validationActions:
     - Deny
 
+  # ============================================================
+  # Fail closed if Kyverno cannot evaluate the policy
+  # ============================================================
   failurePolicy: Fail
 
+  # ============================================================
+  # Admission webhook configuration
+  # ============================================================
   webhookConfiguration:
     timeoutSeconds: 30
 
+  # ============================================================
+  # Admission-time validation only
+  # ============================================================
   evaluation:
     background:
       enabled: false
@@ -55,11 +67,8 @@ spec:
   attestors:
 
     - name: github-actions
-
       cosign:
-
         keyless:
-
           identities:
 
             # --------------------------------------------------
