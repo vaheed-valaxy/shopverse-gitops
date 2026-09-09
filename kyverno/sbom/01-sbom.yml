@@ -1,0 +1,131 @@
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+
+metadata:
+  name: verify-main-container-sbom
+
+spec:
+
+  # ============================================================
+  # Validation action
+  # ============================================================
+  validationActions:
+    - Deny
+
+  failurePolicy: Fail
+
+  webhookConfiguration:
+    timeoutSeconds: 30
+
+  # ============================================================
+  # Background scanning disabled
+  # SBOM validation happens during admission
+  # ============================================================
+  evaluation:
+    background:
+      enabled: false
+
+  # ============================================================
+  # AWS ECR credentials
+  #
+  # Required because the images are stored in PRIVATE ECR.
+  # Kyverno uses its AWS IAM/IRSA role to access ECR.
+  # ============================================================
+  credentials:
+    providers:
+      - amazon
+
+  # ============================================================
+  # Resources to validate
+  # ============================================================
+  matchConstraints:
+
+    resourceRules:
+
+      - apiGroups:
+          - apps
+
+        apiVersions:
+          - v1
+
+        operations:
+          - CREATE
+          - UPDATE
+
+        resources:
+          - deployments
+
+  # ============================================================
+  # Only validate images from our ECR registry
+  # ============================================================
+  matchImageReferences:
+
+    - glob: "123456789012.dkr.ecr.ap-south-1.amazonaws.com/*"
+
+  # ============================================================
+  # SBOM attestation definition
+  #
+  # Your GitHub Actions command uses:
+  #
+  # cosign attest --type cyclonedx
+  #
+  # which creates a CycloneDX in-toto attestation.
+  # ============================================================
+  attestations:
+
+    - name: cyclonedxSbom
+
+      intoto:
+        type: "https://cyclonedx.org/bom"
+
+  # ============================================================
+  # Trusted Cosign signer
+  #
+  # The SBOM attestation must be signed by an approved
+  # GitHub Actions workflow.
+  # ============================================================
+  attestors:
+
+    - name: github-actions
+
+      cosign:
+
+        keyless:
+
+          identities:
+
+            # --------------------------------------------------
+            # Frontend repository
+            # --------------------------------------------------
+            - issuer: "https://token.actions.githubusercontent.com"
+              subjectRegExp: "^https://github\\.com/vaheed-valaxy/shopverse-frontend/.github/workflows/.*@refs/heads/develop$"
+
+            # --------------------------------------------------
+            # Backend repository
+            # --------------------------------------------------
+            - issuer: "https://token.actions.githubusercontent.com"
+              subjectRegExp: "^https://github\\.com/vaheed-valaxy/shopverse-backend/.github/workflows/.*@refs/heads/develop$"
+
+          # ----------------------------------------------------
+          # Sigstore Rekor transparency log
+          # ----------------------------------------------------
+          ctlog:
+            url: "https://rekor.sigstore.dev"
+
+  # ============================================================
+  # Validation
+  # ============================================================
+  validations:
+
+    - expression: >-
+        object.spec.template.spec.containers.size() > 0 &&
+        verifyAttestationSignatures(
+          object.spec.template.spec.containers[0].image,
+          attestations.cyclonedxSbom,
+          [attestors.github-actions]
+        ) > 0
+
+      message: >-
+        The main container image must have a valid Cosign-signed
+        CycloneDX SBOM attestation created by an approved
+        GitHub Actions workflow on the develop branch.
