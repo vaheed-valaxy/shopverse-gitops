@@ -1,3 +1,6 @@
+# This policy enforces on Deployment main container
+# ==============================================================
+
 apiVersion: policies.kyverno.io/v1
 kind: ImageValidatingPolicy
 
