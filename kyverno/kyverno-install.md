@@ -28,6 +28,9 @@ kyverno version
 
 kyverno version --client
 
+kubectl -n kyverno get pods \
+  -o jsonpath='{range .items[*]}{.metadata.name}{" -> "}{.spec.containers[0].image}{"\n"}{end}'
+
 kubectl -n kyverno get deployment kyverno-admission-controller \
   -o jsonpath='{.spec.template.spec.containers[0].image}'
 ```
