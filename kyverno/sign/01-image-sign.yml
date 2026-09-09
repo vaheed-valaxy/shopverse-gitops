@@ -5,6 +5,7 @@ metadata:
   name: verify-main-container-signature
 
 spec:
+
   validationActions:
     - Deny
 
@@ -17,6 +18,16 @@ spec:
     background:
       enabled: false
 
+  # ============================================================
+  # AWS ECR credentials
+  # ============================================================
+  credentials:
+    providers:
+      - amazon
+
+  # ============================================================
+  # Resources to validate
+  # ============================================================
   matchConstraints:
     resourceRules:
       - apiGroups:
@@ -29,27 +40,54 @@ spec:
         resources:
           - deployments
 
+  # ============================================================
+  # Only validate images from our ECR
+  # ============================================================
   matchImageReferences:
     - glob: "123456789012.dkr.ecr.ap-south-1.amazonaws.com/*"
 
+  # ============================================================
+  # Trusted Cosign signer
+  # ============================================================
   attestors:
+
     - name: github-actions
 
       cosign:
+
         keyless:
+
           identities:
+
+            # --------------------------------------------------
+            # Frontend GitHub repository
+            # --------------------------------------------------
             - issuer: "https://token.actions.githubusercontent.com"
               subjectRegExp: "^https://github\\.com/vaheed-valaxy/shopverse-frontend/.github/workflows/.*@refs/heads/develop$"
-          
+
+            # --------------------------------------------------
+            # Backend GitHub repository
+            # --------------------------------------------------
             - issuer: "https://token.actions.githubusercontent.com"
               subjectRegExp: "^https://github\\.com/vaheed-valaxy/shopverse-backend/.github/workflows/.*@refs/heads/develop$"
 
-              # subjectRegExp: "^https://github\\.com/vaheed-valaxy/.+/.github/workflows/.*@refs/heads/develop$"  (Trust entire github repo 'vaheed-valaxy')
+            # --------------------------------------------------
+            # Entire GitHub Organization (vaheed-valaxy)
+            # --------------------------------------------------
+            # - issuer: "https://token.actions.githubusercontent.com"
+            #   subjectRegExp: "^https://github\\.com/vaheed-valaxy/.+/.github/workflows/.*@refs/heads/develop$"  (Trust entire github org 'vaheed-valaxy')
 
+          # ----------------------------------------------------
+          # Sigstore Rekor transparency log
+          # ----------------------------------------------------
           ctlog:
             url: "https://rekor.sigstore.dev"
 
+  # ============================================================
+  # Validation
+  # ============================================================
   validations:
+
     - expression: >-
         object.spec.template.spec.containers.size() > 0 &&
         verifyImageSignatures(
@@ -58,5 +96,6 @@ spec:
         ) > 0
 
       message: >-
-        The main container image must have a valid Cosign keyless signature
-        created by the approved GitHub Actions workflow on the develop branch.
+        The main container image must have a valid Cosign keyless
+        signature created by an approved GitHub Actions workflow
+        on the develop branch.
