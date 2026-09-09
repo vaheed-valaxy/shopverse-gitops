@@ -1,25 +1,68 @@
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
+
 metadata:
   name: enforce-main-container-image-digest
 
 spec:
+
+  # ============================================================
+  # Reject the Deployment if validation fails
+  # ============================================================
   validationActions:
     - Deny
 
+  # ============================================================
+  # Fail closed if Kyverno cannot evaluate the policy
+  # ============================================================
+  failurePolicy: Fail
+
+  # ============================================================
+  # Admission webhook configuration
+  # ============================================================
+  webhookConfiguration:
+    timeoutSeconds: 30
+
+  # ============================================================
+  # Admission-time validation only
+  # ============================================================
+  evaluation:
+    background:
+      enabled: false
+
+  # ============================================================
+  # Resources to validate
+  # ============================================================
   matchConstraints:
+
     resourceRules:
+
       - apiGroups:
           - apps
+
         apiVersions:
           - v1
+
         operations:
           - CREATE
           - UPDATE
+
         resources:
           - deployments
 
+  # ============================================================
+  # Validation
+  #
+  # Only the MAIN container is checked:
+  #
+  # spec.template.spec.containers[0]
+  #
+  # Required format:
+  #
+  # image@sha256:<64 hexadecimal characters>
+  # ============================================================
   validations:
+
     - expression: >-
         object.spec.template.spec.containers.size() > 0 &&
         object.spec.template.spec.containers[0].image.matches(
