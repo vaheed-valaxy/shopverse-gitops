@@ -21,3 +21,13 @@ helm install kyverno kyverno/kyverno -n kyverno --create-namespace \
 --set cleanupController.replicas=2 \
 --set reportsController.replicas=2
 ```
+
+## Check kyverno version  
+```bash
+kyverno version
+
+kyverno version --client
+
+kubectl -n kyverno get deployment kyverno-admission-controller \
+  -o jsonpath='{.spec.template.spec.containers[0].image}'
+```
