@@ -62,10 +62,10 @@ spec:
     - expression: >-
         object.spec.template.spec.containers.size() > 0 &&
         object.spec.template.spec.containers[0].image.startsWith(
-          '123456789012.dkr.ecr.ap-south-1.amazonaws.com/'
+          '254405569649.dkr.ecr.us-east-1.amazonaws.com/'
         )
 
       message: >-
         The main container image must come from the approved
         AWS ECR registry:
-        123456789012.dkr.ecr.ap-south-1.amazonaws.com
+        254405569649.dkr.ecr.us-east-1.amazonaws.com
