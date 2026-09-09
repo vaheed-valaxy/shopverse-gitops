@@ -22,7 +22,7 @@ helm install kyverno kyverno/kyverno -n kyverno --create-namespace \
 --set reportsController.replicas=2
 ```
 
-## Check kyverno version  
+## Check Kyverno version  
 ```bash
 kyverno version
 
