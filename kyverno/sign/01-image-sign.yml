@@ -59,7 +59,7 @@ spec:
   # Only validate images from our ECR
   # ============================================================
   matchImageReferences:
-    - glob: "123456789012.dkr.ecr.ap-south-1.amazonaws.com/*"
+    - glob: "254405569649.dkr.ecr.ap-south-1.amazonaws.com/*"
 
   # ============================================================
   # Trusted Cosign signer
