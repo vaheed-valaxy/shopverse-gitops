@@ -1,0 +1,298 @@
+name: Reusable - GitOps Helm + Kubernetes Security
+
+on:
+  workflow_call:
+
+    inputs:
+
+      component:
+        description: "Component name"
+        required: true
+        type: string
+
+      environment:
+        description: "Environment name"
+        required: true
+        type: string
+
+      chart-path:
+        description: "Path to Helm chart"
+        required: true
+        type: string
+
+      values-file:
+        description: "Path to Helm values file"
+        required: true
+        type: string
+
+      runner:
+        description: "Runner label"
+        required: false
+        type: string
+        default: ubuntu-latest
+
+
+env:
+  TRIVY_VERSION: v0.72.0
+  HELM_VERSION: v3.19.0
+  KUBECONFORM_VERSION: v0.7.0
+
+
+jobs:
+
+  GitOps-Validation:
+
+    name: "${{ inputs.component }} - ${{ inputs.environment }} - Helm + Kubernetes Security"
+
+    runs-on: ${{ inputs.runner }}
+
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: read
+
+    steps:
+
+      # ======================================================
+      # 1. Checkout GitOps Repository
+      # ======================================================
+
+      - name: Checkout GitOps Repository
+        uses: actions/checkout@v6
+        with:
+          # ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+
+      # ======================================================
+      # 2. Setup Helm
+      # ======================================================
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Build Helm Dependencies
+        run: |
+          echo "Chart_Path: ${{ inputs.chart-path }}"
+          # rm -rf "${{ inputs.environment }}/${{ inputs.component }}/charts"
+          helm dependency build "${{ inputs.chart-path }}"    #./helm-charts-new/${{ inputs.component }}
+
+
+      # ======================================================
+      # 3. Helm Lint
+      # ======================================================
+      - name: Commit being tested
+        run: |
+          echo "------------------------------------------"
+          echo "Commit being tested"
+          echo "------------------------------------------"
+          git log -1 --oneline
+
+      - name: Helm Lint
+        run: |
+          set -euo pipefail
+
+          echo "Component   : ${{ inputs.component }}"
+          echo "Chart       : ${{ inputs.chart-path }}"
+          echo "Values file : ${{ inputs.values-file }}"
+
+          helm lint \
+            "${{ inputs.chart-path }}" \
+            -f "${{ inputs.values-file }}"
+
+
+      # ======================================================
+      # 4. Render Helm Templates
+      # ======================================================
+
+      - name: Render Helm Manifests
+        run: |
+          set -euo pipefail
+
+          mkdir -p "rendered/${{ inputs.component }}"
+
+          helm template \
+            "${{ inputs.component }}" \
+            "${{ inputs.chart-path }}" \
+            -f "${{ inputs.values-file }}" \
+            > "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
+
+          echo "Helm rendering completed."
+
+
+      # ======================================================
+      # 5. Show Rendered Manifests
+      # ======================================================
+
+      - name: Show Rendered Kubernetes Manifests
+        run: |
+          echo "=================================================="
+          echo "Rendered Kubernetes Manifests"
+          echo "Component: ${{ inputs.component }}"
+          echo "=================================================="
+
+          cat \
+            "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
+
+
+      # ======================================================
+      # 6. Install Kubeconform
+      # ======================================================
+
+      - name: Install Kubeconform
+        run: |
+          set -euo pipefail
+
+          KUBECONFORM_URL="https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+
+          echo "Downloading Kubeconform ${KUBECONFORM_VERSION}..."
+
+          curl -fsSL \
+            "$KUBECONFORM_URL" \
+            -o /tmp/kubeconform.tar.gz
+
+          tar -xzf \
+            /tmp/kubeconform.tar.gz \
+            -C /tmp
+
+          sudo install \
+            /tmp/kubeconform \
+            /usr/local/bin/kubeconform
+
+          kubeconform -v
+
+
+      # ======================================================
+      # 7. Kubeconform
+      # ======================================================
+
+      - name: Kubeconform - Kubernetes Schema Validation
+        run: |
+          set -euo pipefail
+
+          kubeconform \
+            -strict \
+            -summary \
+            -output tap \
+            "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
+
+          # output text pretty
+
+
+      # ======================================================
+      # 8. Setup Trivy
+      # ======================================================
+
+      - name: Setup Trivy
+        uses: aquasecurity/setup-trivy@v0.2.6
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+
+
+      # ======================================================
+      # 9. Trivy Security Scan
+      # ======================================================
+
+      - name: Trivy - Kubernetes Manifest Security Scan
+        run: |
+          set -euo pipefail
+
+          trivy config \
+            --severity MEDIUM,HIGH,CRITICAL \
+            --exit-code 0 \
+            --format table \
+            "rendered/${{ inputs.component }}"
+
+
+      # ======================================================
+      # 10. Generate Trivy SARIF
+      # ======================================================
+
+      - name: Generate Trivy SARIF
+        if: always()
+        run: |
+          trivy config \
+            --severity HIGH,CRITICAL \
+            --format sarif \
+            --output "trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif" \
+            "rendered/${{ inputs.component }}"
+
+
+      # ======================================================
+      # 11. Check SARIF
+      # ======================================================
+
+      - name: Check Trivy SARIF
+        id: check-sarif
+        if: always()
+        run: |
+
+          SARIF_FILE="trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif"
+
+          if [ -s "$SARIF_FILE" ]; then
+
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+
+            echo "✅ SARIF file exists."
+
+          else
+
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+
+            echo "⚠️ SARIF file does not exist or is empty."
+
+          fi
+
+
+      # ======================================================
+      # 12. Upload SARIF
+      # ======================================================
+
+      - name: Upload Trivy SARIF
+        if: always() && steps.check-sarif.outputs.exists == 'true'
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif
+          category: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}
+          wait-for-processing: true
+
+
+      # ============================================================
+      # 13. Kyverno CLI validation
+      # ============================================================
+      - name: Kyverno policy validation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p kyverno-reports
+
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            ghcr.io/kyverno/kyverno-cli:v1.19.0 \
+            apply kyverno/policies \
+            --resource "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml" \
+            --policy-report \
+            > "kyverno-reports/${{ inputs.component }}-policy-report.yaml"
+
+          
+          echo "=================================================="
+          echo "Kyverno Policy Report"
+          echo "=================================================="
+
+          cat "kyverno-reports/${{ inputs.component }}-policy-report.yaml"
+
+      # ============================================================
+      # 14. Kyverno CLI validation
+      # ============================================================
+      - name: Upload Kyverno report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyverno-report-k8s-${{ inputs.component }}
+          path: kyverno-reports/${{ matrix.service }}-report.yaml
+          if-no-files-found: warn  #error
+          retention-days: 1    
