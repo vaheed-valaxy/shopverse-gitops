@@ -89,11 +89,20 @@ jobs:
   # 2. Run reusable validation workflow
   # ============================================================
 
-  GitOps-Validation-Job:
-    # name: "${{ needs.Detect-Changes-Job.outputs.component }} / ${{ needs.Detect-Changes-Job.outputs.environment }}"
+  Dev-GitOps-Job:
+    if: ${{ needs.Detect-Changes-Job.outputs.environment == 'dev' }}
     needs: Detect-Changes-Job
-    # if: needs.Detect-Changes.outputs.matrix != '{"include":[]}'
-    uses: ./.github/workflows/reusable-gitops-pr.yml
+    uses: ./.github/workflows/reusable-dev-gitops-pr.yml
+    with:
+      component: ${{ needs.Detect-Changes-Job.outputs.component }}
+      environment: ${{ needs.Detect-Changes-Job.outputs.environment }}
+      chart-path: ${{ needs.Detect-Changes-Job.outputs.chart_path }}
+      values-file: ${{ needs.Detect-Changes-Job.outputs.helm_values_file }}
+
+  Qa-GitOps-Job:
+    if: needs.Detect-Changes-Job.outputs.environment == 'qa'
+    needs: Detect-Changes-Job
+    uses: ./.github/workflows/reusable-qa-gitops-pr.yml
     with:
       component: ${{ needs.Detect-Changes-Job.outputs.component }}
       environment: ${{ needs.Detect-Changes-Job.outputs.environment }}
