@@ -1,0 +1,71 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+
+metadata:
+  name: enforce-main-container-image-ecr-registry
+
+spec:
+
+  # ============================================================
+  # Reject the Deployment if validation fails
+  # ============================================================
+  validationActions:
+    - Deny
+
+  # ============================================================
+  # Fail closed if Kyverno cannot evaluate the policy
+  # ============================================================
+  failurePolicy: Fail
+
+  # ============================================================
+  # Admission webhook configuration
+  # ============================================================
+  webhookConfiguration:
+    timeoutSeconds: 30
+    
+  # ============================================================
+  # Admission-time validation only
+  # ============================================================
+  evaluation:
+    background:
+      enabled: false
+
+  # ============================================================
+  # Resources to validate
+  # ============================================================
+  matchConstraints:
+
+    resourceRules:
+
+      - apiGroups:
+          - apps
+
+        apiVersions:
+          - v1
+
+        operations:
+          - CREATE
+          - UPDATE
+
+        resources:
+          - deployments
+
+  # ============================================================
+  # Validation
+  #
+  # Only the MAIN container is checked:
+  #
+  # spec.template.spec.containers[0]
+  # ============================================================
+  validations:
+
+    - expression: >-
+        object.spec.template.spec.containers.size() > 0 &&
+        object.spec.template.spec.containers[0].image.startsWith(
+          '254405569649.dkr.ecr.us-east-1.amazonaws.com/'
+        )
+
+      message: >-
+        The main container image must come from the approved
+        AWS ECR registry:
+        254405569649.dkr.ecr.us-east-1.amazonaws.com
