@@ -2,7 +2,7 @@ apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
 
 metadata:
-  name: enforce-main-container-image-ecr-registry
+  name: enforce-main-container-image-specific-ecr-registry
 
 spec:
 
