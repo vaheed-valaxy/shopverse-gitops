@@ -5,8 +5,8 @@ package kubernetes.security
 # Allowed registries (EDIT THIS LIST)
 # --------------------------------------------------
 allowed_registries := [
-  "123456789012.dkr.ecr.us-east-1.amazonaws.com",
-  "123456789012.dkr.ecr.eu-west-1.amazonaws.com"
+  "254405569649.dkr.ecr.us-east-1.amazonaws.com",
+  "254405569649.dkr.ecr.eu-west-1.amazonaws.com"
 ]
 
 # --------------------------------------------------
