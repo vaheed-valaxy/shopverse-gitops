@@ -276,14 +276,14 @@ jobs:
             apply kyverno/policies \
             --resource "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml" \
             --policy-report \
-            > "kyverno-reports/${{ inputs.component }}-policy-report.yaml"
+            > "kyverno-reports/${{ inputs.component }}-kyverno-report.yaml"
 
           
           echo "=================================================="
           echo "Kyverno Policy Report"
           echo "=================================================="
 
-          cat "kyverno-reports/${{ inputs.component }}-policy-report.yaml"
+          cat "kyverno-reports/${{ inputs.component }}-kyverno-report.yaml"
 
       # ============================================================
       # 14. Kyverno CLI validation
@@ -293,6 +293,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kyverno-report-k8s-${{ inputs.component }}
-          path: kyverno-reports/${{ matrix.service }}-report.yaml
+          path: kyverno-reports/${{ inputs.component }}-kyverno-report.yaml
           if-no-files-found: warn  #error
           retention-days: 1    
