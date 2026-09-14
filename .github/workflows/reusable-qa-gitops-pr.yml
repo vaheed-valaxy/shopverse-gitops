@@ -273,7 +273,7 @@ jobs:
             -v "$PWD:/work" \
             -w /work \
             ghcr.io/kyverno/kyverno-cli:v1.19.0 \
-            apply kyverno/policies \
+            apply kyverno/static \
             --resource "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml" \
             --policy-report \
             > "kyverno-reports/${{ inputs.component }}-kyverno-report.yaml"
