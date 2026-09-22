@@ -10,6 +10,12 @@ on:
         required: true
         type: string
 
+      runner:
+        description: "Runner label"
+        required: false
+        type: string
+        default: ubuntu-latest
+
       environment:
         description: "Environment name"
         required: true
@@ -25,21 +31,35 @@ on:
         required: true
         type: string
 
-      runner:
-        description: "Runner label"
+      deploy-to-dev:
+        description: "Deploy to DEV environment"
         required: false
-        type: string
-        default: ubuntu-latest
+        type: boolean
+        default: false
 
       eks-cluster-name:
         description: "EKS cluster name"
-        required: true
+        required: false
         type: string
+        default: ""
+
+      argocd-host:
+        description: "Argo CD server host dns or ip"
+        required: false
+        type: string
+        default: "127.0.0.1"
+
+      argocd-port:
+        description: "Argo CD port"
+        required: false
+        type: string
+        default: "8090"
 
       argocd-app:
         description: "Argo CD application name"
-        required: true
+        required: false
         type: string
+        default: ""
 
       dev-namespace:
         description: "DEV Kubernetes namespace"
@@ -49,13 +69,19 @@ on:
 
     secrets:
 
-      ARGOCD_AUTH_TOKEN:
+      DEV_ARGOCD_AUTH_TOKEN:
         description: "Argo CD project-role authentication token"
-        required: true
+        required: false
 
 
 env:
   AWS_REGION: us-east-1
+
+  ARGOCD_HOST: ${{ inputs.argocd-host }}
+  ARGOCD_PORT: ${{ inputs.argocd-port }}
+  ARGOCD_APP: ${{ inputs.argocd-app }}
+  ARGOCD_NAMESPACE: argocd
+
 
   TRIVY_VERSION: v0.72.0
   HELM_VERSION: v3.19.0
@@ -64,12 +90,9 @@ env:
   KYVERNO_CLI_VERSION: "v1.19.0"
   YQ_VERSION: "v4.47.1"
 
-  ARGOCD_NAMESPACE: argocd
-  ARGOCD_PORT: "8090"
-
 
 concurrency:
-  group: gitops-${{ inputs.environment }}-validation
+  group: gitops-${{ inputs.component }}-${{ inputs.environment }}-validation
   cancel-in-progress: true
 
 
@@ -228,7 +251,7 @@ jobs:
 
 
       # ======================================================
-      # 8. Kubeconform
+      # 8. Kubeconform Validation
       # ======================================================
 
       - name: Kubeconform - Kubernetes Schema Validation
@@ -330,10 +353,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "----------------------------------------------"
-          echo "DEV GitOps validation PASSED"
-          echo "----------------------------------------------"
+          echo "--------------------------------------------------"
+          echo "${{ inputs.environment }} GitOps validation PASSED"
+          echo "--------------------------------------------------"
 
+          echo "Component: ${{ inputs.component }}"
+          echo "Environment: ${{ inputs.environment }}"
           echo "Commit: ${GITHUB_SHA}"
           echo "Branch: ${GITHUB_REF_NAME}"
 
@@ -349,7 +374,7 @@ jobs:
     needs:
       - GitOps-Validation-Job
 
-    if: needs.GitOps-Validation-Job.result == 'success'
+    if: inputs.deploy-to-dev
 
     runs-on:
       - self-hosted
@@ -370,13 +395,13 @@ jobs:
     steps:
 
       # ======================================================
-      # 1. Checkout EXACT validated commit
+      # 1. Checkout Gitops repo
       # ======================================================
 
       - name: Checkout validated commit
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.sha }}
+          # ref: ${{ github.sha }}   # EXACT validated commit
           fetch-depth: 0
 
 
@@ -430,8 +455,8 @@ jobs:
           VALIDATED_SHA="${GITHUB_SHA}"
           CURRENT_MAIN_SHA="$(git rev-parse origin/main)"
 
-          echo "Validated SHA : ${VALIDATED_SHA}"
-          echo "Current main  : ${CURRENT_MAIN_SHA}"
+          echo "Validated SHA    : ${VALIDATED_SHA}"
+          echo "Current Main SHA : ${CURRENT_MAIN_SHA}"
 
           if [[ "${VALIDATED_SHA}" != "${CURRENT_MAIN_SHA}" ]]; then
             echo "::error::A newer GitOps commit exists."
@@ -450,6 +475,7 @@ jobs:
         shell: bash
         env:
           ARGOCD_NAMESPACE: ${{ env.ARGOCD_NAMESPACE }}
+          ARGOCD_HOST: ${{ env.ARGOCD_HOST }}
           ARGOCD_PORT: ${{ env.ARGOCD_PORT }}
         run: |
           set -euo pipefail
@@ -469,10 +495,8 @@ jobs:
 
           for i in {1..30}; do
 
-            if curl -fsS \
-              "http://127.0.0.1:${ARGOCD_PORT}/healthz" \
-              >/dev/null 2>&1; then
-
+            if curl -fsS "http://${ARGOCD_HOST}:${ARGOCD_PORT}/healthz" >/dev/null 2>&1; then
+              
               echo "Argo CD is reachable."
 
               exit 0
@@ -496,14 +520,15 @@ jobs:
       - name: Login to Argo CD
         shell: bash
         env:
-          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+          DEV_ARGOCD_AUTH_TOKEN: ${{ secrets.DEV_ARGOCD_AUTH_TOKEN }}
+          ARGOCD_HOST: ${{ env.ARGOCD_HOST }}
           ARGOCD_PORT: ${{ env.ARGOCD_PORT }}
         run: |
           set -euo pipefail
 
           argocd login \
-            "127.0.0.1:${ARGOCD_PORT}" \
-            --auth-token "${ARGOCD_AUTH_TOKEN}" \
+            "${ARGOCD_HOST}:${ARGOCD_PORT}" \
+            --auth-token "${DEV_ARGOCD_AUTH_TOKEN}" \
             --insecure \
             --plaintext
 
@@ -536,11 +561,9 @@ jobs:
           echo "Deploying validated GitOps commit:"
           echo "${GITHUB_SHA}"
 
-          argocd app sync \
-            "${ARGOCD_APP}" \
-            --revision "${GITHUB_SHA}"
-
-
+          argocd app sync "${ARGOCD_APP}" --revision "${GITHUB_SHA}"
+            
+            
       # ======================================================
       # 9. Wait for DEV application
       # ======================================================
