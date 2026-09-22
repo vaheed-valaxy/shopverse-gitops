@@ -60,6 +60,13 @@ jobs:
             echo "File changed: $file"
         
             if [[ "$file" =~ ^envs/([^/]+)/values-(.+)\.yaml$ ]]; then
+
+                changed_values_count=$((changed_values_count + 1))
+
+                if (( changed_values_count > 1 )); then
+                  echo "::error::Only one environment values file may be changed per PR."
+                  exit 1
+                fi
         
                 environment="${BASH_REMATCH[1]}"
                 component="${BASH_REMATCH[2]}"
@@ -104,7 +111,9 @@ jobs:
       argocd-host: '127.0.0.1'
       argocd-port: '8090'                     # port-forward purpose
       argocd-app: 'shopverse-dev-backend'
-
+      
+    # secrets:
+    #   DEV_ARGOCD_AUTH_TOKEN: ${{ secrets.DEV_ARGOCD_AUTH_TOKEN }}
 
   Qa-GitOps-Job:
     if: needs.Detect-Changes-Job.outputs.environment == 'qa'
@@ -126,7 +135,3 @@ jobs:
       environment: ${{ needs.Detect-Changes-Job.outputs.environment }}
       chart-path: ${{ needs.Detect-Changes-Job.outputs.chart_path }}
       values-file: ${{ needs.Detect-Changes-Job.outputs.helm_values_file }}
-     
-  
-
-      
