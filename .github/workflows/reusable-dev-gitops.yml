@@ -31,6 +31,28 @@ on:
         type: string
         default: ubuntu-latest
 
+      eks-cluster-name:
+        description: "EKS cluster name"
+        required: true
+        type: string
+
+      argocd-app:
+        description: "Argo CD application name"
+        required: true
+        type: string
+
+      dev-namespace:
+        description: "DEV Kubernetes namespace"
+        required: false
+        type: string
+        default: shopverse-dev
+
+    secrets:
+
+      ARGOCD_AUTH_TOKEN:
+        description: "Argo CD project-role authentication token"
+        required: true
+
 
 env:
   AWS_REGION: us-east-1
@@ -42,23 +64,24 @@ env:
   KYVERNO_CLI_VERSION: "v1.19.0"
   YQ_VERSION: "v4.47.1"
 
-  EKS_CLUSTER_NAME: "YOUR_EKS_CLUSTER_NAME"
-
-  ARGOCD_NAMESPACE: "argocd"
-  ARGOCD_APP: "shopverse-backend-dev"
+  ARGOCD_NAMESPACE: argocd
   ARGOCD_PORT: "8090"
 
-  DEV_NAMESPACE: "shopverse-dev"
 
 concurrency:
-  group: gitops-dev-validation
+  group: gitops-${{ inputs.environment }}-validation
   cancel-in-progress: true
+
 
 permissions:
   contents: read
 
 
 jobs:
+
+  # ==========================================================
+  # GITOPS VALIDATION
+  # ==========================================================
 
   GitOps-Validation-Job:
 
@@ -69,7 +92,6 @@ jobs:
     permissions:
       contents: read
       security-events: write
-      # pull-requests: read
 
     steps:
 
@@ -80,7 +102,6 @@ jobs:
       - name: Checkout GitOps Repository
         uses: actions/checkout@v6
         with:
-          # ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
 
@@ -93,24 +114,42 @@ jobs:
         with:
           version: ${{ env.HELM_VERSION }}
 
+
       - name: Build Helm Dependencies
+        shell: bash
         run: |
-          echo "Chart_Path: ${{ inputs.chart-path }}"
-          # rm -rf "${{ inputs.environment }}/${{ inputs.component }}/charts"
-          helm dependency build "${{ inputs.chart-path }}"    #./helm-charts-new/${{ inputs.component }}
+          set -euo pipefail
+
+          echo "Chart path: ${{ inputs.chart-path }}"
+
+          helm dependency build "${{ inputs.chart-path }}"
 
 
       # ======================================================
-      # 3. Helm Lint
+      # 3. Show Commit Being Validated
       # ======================================================
+
       - name: Commit being tested
+        shell: bash
         run: |
+          set -euo pipefail
+
           echo "------------------------------------------"
           echo "Commit being tested"
           echo "------------------------------------------"
+
           git log -1 --oneline
 
+          echo "GITHUB_SHA: ${GITHUB_SHA}"
+          echo "GITHUB_REF: ${GITHUB_REF}"
+
+
+      # ======================================================
+      # 4. Helm Lint
+      # ======================================================
+
       - name: Helm Lint
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -124,10 +163,11 @@ jobs:
 
 
       # ======================================================
-      # 4. Render Helm Templates
+      # 5. Render Helm Templates
       # ======================================================
 
       - name: Render Helm Manifests
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -143,24 +183,28 @@ jobs:
 
 
       # ======================================================
-      # 5. Show Rendered Manifests
+      # 6. Show Rendered Kubernetes Manifests
       # ======================================================
 
       - name: Show Rendered Kubernetes Manifests
+        shell: bash
         run: |
+          set -euo pipefail
+
           echo "=================================================="
           echo "Rendered Kubernetes Manifests"
           echo "Component: ${{ inputs.component }}"
           echo "=================================================="
 
           cat "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
-            
+
 
       # ======================================================
-      # 6. Install Kubeconform
+      # 7. Install Kubeconform
       # ======================================================
 
       - name: Install Kubeconform
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -184,10 +228,11 @@ jobs:
 
 
       # ======================================================
-      # 7. Kubeconform
+      # 8. Kubeconform
       # ======================================================
 
       - name: Kubeconform - Kubernetes Schema Validation
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -197,11 +242,9 @@ jobs:
             -output tap \
             "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
 
-          # output text pretty
-
 
       # ======================================================
-      # 8. Setup Trivy
+      # 9. Setup Trivy
       # ======================================================
 
       - name: Setup Trivy
@@ -211,10 +254,11 @@ jobs:
 
 
       # ======================================================
-      # 9. Trivy Security Scan
+      # 10. Trivy Kubernetes Manifest Security Scan
       # ======================================================
 
       - name: Trivy - Kubernetes Manifest Security Scan
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -226,12 +270,15 @@ jobs:
 
 
       # ======================================================
-      # 10. Generate Trivy SARIF
+      # 11. Generate Trivy SARIF
       # ======================================================
 
       - name: Generate Trivy SARIF
         if: always()
+        shell: bash
         run: |
+          set -euo pipefail
+
           trivy config \
             --severity HIGH,CRITICAL \
             --format sarif \
@@ -240,33 +287,29 @@ jobs:
 
 
       # ======================================================
-      # 11. Check SARIF
+      # 12. Check SARIF
       # ======================================================
 
       - name: Check Trivy SARIF
         id: check-sarif
         if: always()
+        shell: bash
         run: |
+          set -euo pipefail
 
           SARIF_FILE="trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif"
 
-          if [ -s "$SARIF_FILE" ]; then
-
+          if [[ -s "$SARIF_FILE" ]]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-
-            echo "✅ SARIF file exists."
-
+            echo "SARIF file exists."
           else
-
             echo "exists=false" >> "$GITHUB_OUTPUT"
-
-            echo "⚠️ SARIF file does not exist or is empty."
-
+            echo "SARIF file does not exist or is empty."
           fi
 
 
       # ======================================================
-      # 12. Upload SARIF
+      # 13. Upload SARIF
       # ======================================================
 
       - name: Upload Trivy SARIF
@@ -278,26 +321,33 @@ jobs:
           wait-for-processing: true
 
 
-
       # ======================================================
-      # 13. Validation Summary
+      # 14. Validation Summary
       # ======================================================
 
       - name: Validation summary
+        shell: bash
         run: |
+          set -euo pipefail
+
           echo "----------------------------------------------"
           echo "DEV GitOps validation PASSED"
           echo "----------------------------------------------"
+
           echo "Commit: ${GITHUB_SHA}"
           echo "Branch: ${GITHUB_REF_NAME}"
 
 
   # ==========================================================
-  # DEPLOY to DEV
+  # DEPLOY TO DEV
   # ==========================================================
+
   Deploy-Dev-Job:
+
     name: Deploy DEV
-    needs: GitOps-Validation-Job
+
+    needs:
+      - GitOps-Validation-Job
 
     if: needs.GitOps-Validation-Job.result == 'success'
 
@@ -319,11 +369,20 @@ jobs:
 
     steps:
 
+      # ======================================================
+      # 1. Checkout EXACT validated commit
+      # ======================================================
+
       - name: Checkout validated commit
         uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+
+
+      # ======================================================
+      # 2. Verify runner tools
+      # ======================================================
 
       - name: Verify runner tools
         shell: bash
@@ -333,20 +392,33 @@ jobs:
           aws --version
           kubectl version --client
           argocd version --client
+          curl --version
+
+
+      # ======================================================
+      # 3. Configure EKS access
+      # ======================================================
 
       - name: Configure EKS access
         shell: bash
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
-          EKS_CLUSTER_NAME: ${{ env.EKS_CLUSTER_NAME }}
+          EKS_CLUSTER_NAME: ${{ inputs.eks-cluster-name }}
         run: |
           set -euo pipefail
 
           aws sts get-caller-identity
 
-          aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
-                      
+          aws eks update-kubeconfig \
+            --region "${AWS_REGION}" \
+            --name "${EKS_CLUSTER_NAME}"
+
           kubectl get nodes
+
+
+      # ======================================================
+      # 4. Verify validated commit is still current
+      # ======================================================
 
       - name: Verify validated commit is still current
         shell: bash
@@ -369,6 +441,11 @@ jobs:
 
           echo "Commit is still current."
 
+
+      # ======================================================
+      # 5. Start temporary Argo CD port-forward
+      # ======================================================
+
       - name: Start Argo CD port-forward
         shell: bash
         env:
@@ -376,6 +453,9 @@ jobs:
           ARGOCD_PORT: ${{ env.ARGOCD_PORT }}
         run: |
           set -euo pipefail
+
+          rm -f /tmp/argocd-port-forward.pid
+          rm -f /tmp/argocd-port-forward.log
 
           kubectl -n "${ARGOCD_NAMESPACE}" \
             port-forward \
@@ -385,18 +465,33 @@ jobs:
 
           echo $! > /tmp/argocd-port-forward.pid
 
+          echo "Waiting for Argo CD..."
+
           for i in {1..30}; do
-            if curl -k -fsS "https://127.0.0.1:${ARGOCD_PORT}/healthz" >/dev/null 2>&1; then
+
+            if curl -fsS \
+              "http://127.0.0.1:${ARGOCD_PORT}/healthz" \
+              >/dev/null 2>&1; then
+
               echo "Argo CD is reachable."
+
               exit 0
             fi
 
             sleep 2
+
           done
 
           echo "::error::Argo CD port-forward did not become ready."
+
           cat /tmp/argocd-port-forward.log
+
           exit 1
+
+
+      # ======================================================
+      # 6. Login to Argo CD
+      # ======================================================
 
       - name: Login to Argo CD
         shell: bash
@@ -409,48 +504,79 @@ jobs:
           argocd login \
             "127.0.0.1:${ARGOCD_PORT}" \
             --auth-token "${ARGOCD_AUTH_TOKEN}" \
-            --grpc-web \
-            --insecure
+            --insecure \
+            --plaintext
+
+
+      # ======================================================
+      # 7. Check Argo CD application
+      # ======================================================
 
       - name: Check Argo CD application
         shell: bash
         env:
-          ARGOCD_APP: ${{ env.ARGOCD_APP }}
+          ARGOCD_APP: ${{ inputs.argocd-app }}
         run: |
           set -euo pipefail
 
           argocd app get "${ARGOCD_APP}"
 
+
+      # ======================================================
+      # 8. Sync EXACT validated Git commit
+      # ======================================================
+
       - name: Sync DEV application
         shell: bash
         env:
-          ARGOCD_APP: ${{ env.ARGOCD_APP }}
+          ARGOCD_APP: ${{ inputs.argocd-app }}
         run: |
           set -euo pipefail
 
-          argocd app sync "${ARGOCD_APP}"
+          echo "Deploying validated GitOps commit:"
+          echo "${GITHUB_SHA}"
+
+          argocd app sync \
+            "${ARGOCD_APP}" \
+            --revision "${GITHUB_SHA}"
+
+
+      # ======================================================
+      # 9. Wait for DEV application
+      # ======================================================
 
       - name: Wait for DEV application
         shell: bash
         env:
-          ARGOCD_APP: ${{ env.ARGOCD_APP }}
+          ARGOCD_APP: ${{ inputs.argocd-app }}
         run: |
           set -euo pipefail
 
-          argocd app wait "${ARGOCD_APP}" \
+          argocd app wait \
+            "${ARGOCD_APP}" \
             --sync \
             --health \
             --timeout 600
+
+
+      # ======================================================
+      # 10. Show final Argo CD status
+      # ======================================================
 
       - name: Show final Argo CD status
         if: always()
         shell: bash
         env:
-          ARGOCD_APP: ${{ env.ARGOCD_APP }}
+          ARGOCD_APP: ${{ inputs.argocd-app }}
         run: |
           set +e
 
           argocd app get "${ARGOCD_APP}"
+
+
+      # ======================================================
+      # 11. Cleanup temporary port-forward
+      # ======================================================
 
       - name: Cleanup Argo CD port-forward
         if: always()
@@ -459,7 +585,21 @@ jobs:
           set +e
 
           if [[ -f /tmp/argocd-port-forward.pid ]]; then
-            kill "$(cat /tmp/argocd-port-forward.pid)" 2>/dev/null || true
+
+            PID="$(cat /tmp/argocd-port-forward.pid)"
+
+            kill "${PID}" 2>/dev/null || true
+
+            for i in {1..10}; do
+              if ! kill -0 "${PID}" 2>/dev/null; then
+                break
+              fi
+
+              sleep 1
+            done
+
           fi
 
-          rm -f /tmp/argocd-port-forward.pid
+          rm -f \
+            /tmp/argocd-port-forward.pid \
+            /tmp/argocd-port-forward.log
