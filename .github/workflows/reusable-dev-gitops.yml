@@ -1,0 +1,465 @@
+name: Reusable - GitOps Helm + Kubernetes Security
+
+on:
+  workflow_call:
+
+    inputs:
+
+      component:
+        description: "Component name"
+        required: true
+        type: string
+
+      environment:
+        description: "Environment name"
+        required: true
+        type: string
+
+      chart-path:
+        description: "Path to Helm chart"
+        required: true
+        type: string
+
+      values-file:
+        description: "Path to Helm values file"
+        required: true
+        type: string
+
+      runner:
+        description: "Runner label"
+        required: false
+        type: string
+        default: ubuntu-latest
+
+
+env:
+  AWS_REGION: us-east-1
+
+  TRIVY_VERSION: v0.72.0
+  HELM_VERSION: v3.19.0
+  KUBECONFORM_VERSION: v0.7.0
+
+  KYVERNO_CLI_VERSION: "v1.19.0"
+  YQ_VERSION: "v4.47.1"
+
+  EKS_CLUSTER_NAME: "YOUR_EKS_CLUSTER_NAME"
+
+  ARGOCD_NAMESPACE: "argocd"
+  ARGOCD_APP: "shopverse-backend-dev"
+  ARGOCD_PORT: "8090"
+
+  DEV_NAMESPACE: "shopverse-dev"
+
+concurrency:
+  group: gitops-dev-validation
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+
+jobs:
+
+  GitOps-Validation-Job:
+
+    name: "${{ inputs.component }} - ${{ inputs.environment }} - Helm + Kubernetes Security"
+
+    runs-on: ${{ inputs.runner }}
+
+    permissions:
+      contents: read
+      security-events: write
+      # pull-requests: read
+
+    steps:
+
+      # ======================================================
+      # 1. Checkout GitOps Repository
+      # ======================================================
+
+      - name: Checkout GitOps Repository
+        uses: actions/checkout@v6
+        with:
+          # ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+
+      # ======================================================
+      # 2. Setup Helm
+      # ======================================================
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Build Helm Dependencies
+        run: |
+          echo "Chart_Path: ${{ inputs.chart-path }}"
+          # rm -rf "${{ inputs.environment }}/${{ inputs.component }}/charts"
+          helm dependency build "${{ inputs.chart-path }}"    #./helm-charts-new/${{ inputs.component }}
+
+
+      # ======================================================
+      # 3. Helm Lint
+      # ======================================================
+      - name: Commit being tested
+        run: |
+          echo "------------------------------------------"
+          echo "Commit being tested"
+          echo "------------------------------------------"
+          git log -1 --oneline
+
+      - name: Helm Lint
+        run: |
+          set -euo pipefail
+
+          echo "Component   : ${{ inputs.component }}"
+          echo "Chart       : ${{ inputs.chart-path }}"
+          echo "Values file : ${{ inputs.values-file }}"
+
+          helm lint \
+            "${{ inputs.chart-path }}" \
+            -f "${{ inputs.values-file }}"
+
+
+      # ======================================================
+      # 4. Render Helm Templates
+      # ======================================================
+
+      - name: Render Helm Manifests
+        run: |
+          set -euo pipefail
+
+          mkdir -p "rendered/${{ inputs.component }}"
+
+          helm template \
+            "${{ inputs.component }}" \
+            "${{ inputs.chart-path }}" \
+            -f "${{ inputs.values-file }}" \
+            > "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
+
+          echo "Helm rendering completed."
+
+
+      # ======================================================
+      # 5. Show Rendered Manifests
+      # ======================================================
+
+      - name: Show Rendered Kubernetes Manifests
+        run: |
+          echo "=================================================="
+          echo "Rendered Kubernetes Manifests"
+          echo "Component: ${{ inputs.component }}"
+          echo "=================================================="
+
+          cat "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
+            
+
+      # ======================================================
+      # 6. Install Kubeconform
+      # ======================================================
+
+      - name: Install Kubeconform
+        run: |
+          set -euo pipefail
+
+          KUBECONFORM_URL="https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+
+          echo "Downloading Kubeconform ${KUBECONFORM_VERSION}..."
+
+          curl -fsSL \
+            "$KUBECONFORM_URL" \
+            -o /tmp/kubeconform.tar.gz
+
+          tar -xzf \
+            /tmp/kubeconform.tar.gz \
+            -C /tmp
+
+          sudo install \
+            /tmp/kubeconform \
+            /usr/local/bin/kubeconform
+
+          kubeconform -v
+
+
+      # ======================================================
+      # 7. Kubeconform
+      # ======================================================
+
+      - name: Kubeconform - Kubernetes Schema Validation
+        run: |
+          set -euo pipefail
+
+          kubeconform \
+            -strict \
+            -summary \
+            -output tap \
+            "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
+
+          # output text pretty
+
+
+      # ======================================================
+      # 8. Setup Trivy
+      # ======================================================
+
+      - name: Setup Trivy
+        uses: aquasecurity/setup-trivy@v0.2.6
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+
+
+      # ======================================================
+      # 9. Trivy Security Scan
+      # ======================================================
+
+      - name: Trivy - Kubernetes Manifest Security Scan
+        run: |
+          set -euo pipefail
+
+          trivy config \
+            --severity MEDIUM,HIGH,CRITICAL \
+            --exit-code 0 \
+            --format table \
+            "rendered/${{ inputs.component }}"
+
+
+      # ======================================================
+      # 10. Generate Trivy SARIF
+      # ======================================================
+
+      - name: Generate Trivy SARIF
+        if: always()
+        run: |
+          trivy config \
+            --severity HIGH,CRITICAL \
+            --format sarif \
+            --output "trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif" \
+            "rendered/${{ inputs.component }}"
+
+
+      # ======================================================
+      # 11. Check SARIF
+      # ======================================================
+
+      - name: Check Trivy SARIF
+        id: check-sarif
+        if: always()
+        run: |
+
+          SARIF_FILE="trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif"
+
+          if [ -s "$SARIF_FILE" ]; then
+
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+
+            echo "✅ SARIF file exists."
+
+          else
+
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+
+            echo "⚠️ SARIF file does not exist or is empty."
+
+          fi
+
+
+      # ======================================================
+      # 12. Upload SARIF
+      # ======================================================
+
+      - name: Upload Trivy SARIF
+        if: always() && steps.check-sarif.outputs.exists == 'true'
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif
+          category: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}
+          wait-for-processing: true
+
+
+
+      # ======================================================
+      # 13. Validation Summary
+      # ======================================================
+
+      - name: Validation summary
+        run: |
+          echo "----------------------------------------------"
+          echo "DEV GitOps validation PASSED"
+          echo "----------------------------------------------"
+          echo "Commit: ${GITHUB_SHA}"
+          echo "Branch: ${GITHUB_REF_NAME}"
+
+
+  # ==========================================================
+  # DEPLOY to DEV
+  # ==========================================================
+  Deploy-Dev-Job:
+    name: Deploy DEV
+    needs: GitOps-Validation-Job
+
+    if: needs.GitOps-Validation-Job.result == 'success'
+
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - shopverse-dev
+
+    environment:
+      name: dev
+
+    permissions:
+      contents: read
+
+    concurrency:
+      group: shopverse-dev-deployment
+      cancel-in-progress: false
+
+    steps:
+
+      - name: Checkout validated commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify runner tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          aws --version
+          kubectl version --client
+          argocd version --client
+
+      - name: Configure EKS access
+        shell: bash
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          EKS_CLUSTER_NAME: ${{ env.EKS_CLUSTER_NAME }}
+        run: |
+          set -euo pipefail
+
+          aws sts get-caller-identity
+
+          aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
+                      
+          kubectl get nodes
+
+      - name: Verify validated commit is still current
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin main
+
+          VALIDATED_SHA="${GITHUB_SHA}"
+          CURRENT_MAIN_SHA="$(git rev-parse origin/main)"
+
+          echo "Validated SHA : ${VALIDATED_SHA}"
+          echo "Current main  : ${CURRENT_MAIN_SHA}"
+
+          if [[ "${VALIDATED_SHA}" != "${CURRENT_MAIN_SHA}" ]]; then
+            echo "::error::A newer GitOps commit exists."
+            echo "::error::Refusing to deploy stale validated commit."
+            exit 1
+          fi
+
+          echo "Commit is still current."
+
+      - name: Start Argo CD port-forward
+        shell: bash
+        env:
+          ARGOCD_NAMESPACE: ${{ env.ARGOCD_NAMESPACE }}
+          ARGOCD_PORT: ${{ env.ARGOCD_PORT }}
+        run: |
+          set -euo pipefail
+
+          kubectl -n "${ARGOCD_NAMESPACE}" \
+            port-forward \
+            svc/argocd-server \
+            "${ARGOCD_PORT}:80" \
+            > /tmp/argocd-port-forward.log 2>&1 &
+
+          echo $! > /tmp/argocd-port-forward.pid
+
+          for i in {1..30}; do
+            if curl -k -fsS "https://127.0.0.1:${ARGOCD_PORT}/healthz" >/dev/null 2>&1; then
+              echo "Argo CD is reachable."
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "::error::Argo CD port-forward did not become ready."
+          cat /tmp/argocd-port-forward.log
+          exit 1
+
+      - name: Login to Argo CD
+        shell: bash
+        env:
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+          ARGOCD_PORT: ${{ env.ARGOCD_PORT }}
+        run: |
+          set -euo pipefail
+
+          argocd login \
+            "127.0.0.1:${ARGOCD_PORT}" \
+            --auth-token "${ARGOCD_AUTH_TOKEN}" \
+            --grpc-web \
+            --insecure
+
+      - name: Check Argo CD application
+        shell: bash
+        env:
+          ARGOCD_APP: ${{ env.ARGOCD_APP }}
+        run: |
+          set -euo pipefail
+
+          argocd app get "${ARGOCD_APP}"
+
+      - name: Sync DEV application
+        shell: bash
+        env:
+          ARGOCD_APP: ${{ env.ARGOCD_APP }}
+        run: |
+          set -euo pipefail
+
+          argocd app sync "${ARGOCD_APP}"
+
+      - name: Wait for DEV application
+        shell: bash
+        env:
+          ARGOCD_APP: ${{ env.ARGOCD_APP }}
+        run: |
+          set -euo pipefail
+
+          argocd app wait "${ARGOCD_APP}" \
+            --sync \
+            --health \
+            --timeout 600
+
+      - name: Show final Argo CD status
+        if: always()
+        shell: bash
+        env:
+          ARGOCD_APP: ${{ env.ARGOCD_APP }}
+        run: |
+          set +e
+
+          argocd app get "${ARGOCD_APP}"
+
+      - name: Cleanup Argo CD port-forward
+        if: always()
+        shell: bash
+        run: |
+          set +e
+
+          if [[ -f /tmp/argocd-port-forward.pid ]]; then
+            kill "$(cat /tmp/argocd-port-forward.pid)" 2>/dev/null || true
+          fi
+
+          rm -f /tmp/argocd-port-forward.pid
