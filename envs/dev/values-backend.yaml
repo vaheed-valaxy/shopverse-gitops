@@ -8,7 +8,7 @@ image:
   ecr_registry: 254405569649.dkr.ecr.us-east-1.amazonaws.com
   ecr_repository: shopverse/backend
   tag: v1
-  digest: sha256:e37c1df1358fab04d2df67f960bb19193a2470eb8a2c2ddb1db09a4b809f2dc8
+  digest: sha256:f04c30ce6b85afe2d8536ddbea29c2d40ed77842687a81f315fe9f596941f3c1
 containerName: backend
 imagePullPolicy: Always
 terminationGracePeriodSeconds: 30
