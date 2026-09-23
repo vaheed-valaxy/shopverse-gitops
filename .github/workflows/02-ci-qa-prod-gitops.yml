@@ -1,11 +1,6 @@
 name: GitOps CI - Helm + Kubernetes Security
 
-on:
-  # push:
-  #   branches: main
-  #   paths:
-  #     - 'envs/dev/**'
-      
+on:    
   pull_request:
     branches:
       - main
@@ -16,8 +11,8 @@ on:
       - 'envs/qa/**'
       - 'envs/prod/**'
       
-      # - '.github/workflows/ci-gitops.yml'
-      # - '.github/workflows/reusable-gitops-pr.yml'
+      # - '.github/workflows/02-ci-qa-prod-gitops.yml'
+      # - '.github/workflows/reusable-dev-gitops.yml'
 
 permissions:
   contents: read
