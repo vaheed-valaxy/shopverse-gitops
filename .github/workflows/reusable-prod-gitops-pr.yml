@@ -323,17 +323,7 @@ jobs:
               --resource "$RESOURCE" \
               --policy-report \
               > "$REPORT"
-      
-          else
-      
-            echo "Policies: kyverno/static"
-      
-            kyverno apply \
-              kyverno/static \
-              --resource "$RESOURCE" \
-              --policy-report \
-              > "$REPORT"
-      
+            
           fi
       
           echo "=================================================="
