@@ -75,14 +75,14 @@ jobs:
           # Determine Git diff range based on workflow event
           # ------------------------------------------------------------
           if [[ "${{ github.event_name }}" == "push" ]]; then
-      
-            DIFF_BASE="${{ github.event.pull_request.base.sha }}"
-            DIFF_HEAD="${{ github.event.pull_request.head.sha }}"
+
+            DIFF_BASE="${{ github.event.before }}"
+            DIFF_HEAD="${{ github.sha }}"
       
           elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
       
-            DIFF_BASE="${{ github.event.before }}"
-            DIFF_HEAD="${{ github.sha }}"
+            DIFF_BASE="${{ github.event.pull_request.base.sha }}"
+            DIFF_HEAD="${{ github.event.pull_request.head.sha }}"
       
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
 
