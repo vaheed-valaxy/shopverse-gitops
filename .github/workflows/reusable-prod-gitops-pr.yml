@@ -322,7 +322,9 @@ jobs:
               kyverno/prod \
               --resource "$RESOURCE" \
               --policy-report \
-              > "$REPORT"
+              2>&1 | tee "$REPORT"
+              
+              # > "$REPORT"
             
           fi
       
