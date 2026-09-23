@@ -290,6 +290,7 @@ jobs:
       # ============================================================
       # 14. Kyverno CLI validation
       # ============================================================
+      
       - name: Kyverno policy validation
         shell: bash
         run: |
@@ -345,6 +346,7 @@ jobs:
       # ============================================================
       # 15. Kyverno CLI validation
       # ============================================================
+      
       - name: Upload Kyverno report
         if: always()
         uses: actions/upload-artifact@v4
