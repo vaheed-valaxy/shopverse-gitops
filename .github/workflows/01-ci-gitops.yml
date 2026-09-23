@@ -130,7 +130,7 @@ jobs:
                 changed_values_count=$((changed_values_count + 1))
 
                 if (( changed_values_count > 1 )); then
-                  echo "::error::Only one environment values file may be changed per PR."
+                  echo "::error::Only one environment values file may be changed per Push or PR."
                   exit 1
                 fi
         
