@@ -1,0 +1,142 @@
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+
+metadata:
+  name: enforce-main-container-sbom-attestation
+
+spec:
+
+  # ============================================================
+  # Reject the resource if image signature verification fails
+  # ============================================================
+  validationActions:
+    - Deny
+
+  # ============================================================
+  # Fail closed if Kyverno cannot verify the image
+  # ============================================================
+  failurePolicy: Fail
+
+  # ============================================================
+  # Admission webhook configuration
+  # ============================================================
+  webhookConfiguration:
+    timeoutSeconds: 30
+    
+  # ============================================================
+  # Admission-time validation only
+  # ============================================================
+  evaluation:
+    background:
+      enabled: false
+
+  # ============================================================
+  # ECR credentials
+  #
+  # Required when Kyverno needs to access private Amazon ECR.
+  # In EKS, Kyverno uses its AWS identity (IRSA / Pod Identity).
+  # In CI, Kyverno CLI uses the AWS credentials available
+  # to the runner.
+  # ============================================================
+  credentials:
+    providers:
+      - amazon
+
+  #============================================================
+  # Kubernetes resources to inspect
+  # ============================================================
+  matchConstraints:
+
+    resourceRules:
+
+      - apiGroups:
+          - apps
+
+        apiVersions:
+          - v1
+
+        operations:
+          - CREATE
+          - UPDATE
+
+        resources:
+          - deployments
+
+  # ============================================================
+  # Only validate Shopverse ECR images
+  # ============================================================
+  matchImageReferences:
+
+    - glob: '254405569649.dkr.ecr.us-east-1.amazonaws.com/shopverse-*/*'
+
+    - glob: '254405569649.dkr.ecr.us-east-1.amazonaws.com/shopverse/*'
+
+  # ============================================================
+  # SBOM attestation
+  # ============================================================
+  attestations:
+
+    - name: cyclonedxSbom
+
+      referrer:
+
+        # Cosign CycloneDX SBOM attestation
+        type: 'https://cyclonedx.org/bom'
+
+  # ============================================================
+  # Keyless Cosign attestor
+  #
+  # This is the workflow that creates the SBOM attestation.
+  # ============================================================
+  attestors:
+
+    - name: ghActionsShopverseSbom
+
+      cosign:
+
+        keyless:
+
+          identities:
+
+            - issuer: 'https://token.actions.githubusercontent.com'
+
+              subject: 'https://github.com/vaheed-valaxy/central-github-actions/.github/workflows/reusable-sbom-attestation.yml@refs/heads/main'
+
+        ctlog:
+
+          url: 'https://rekor.sigstore.dev'
+
+  # ============================================================
+  # Validation
+  # ============================================================
+  validations:
+
+    # ============================================================
+    # 1. Verify the SBOM attestation signature
+    # ============================================================
+    - expression: >-
+        object.spec.template.spec.containers.size() > 0 &&
+        verifyAttestationSignatures(
+          object.spec.template.spec.containers[0].image,
+          attestations.cyclonedxSbom,
+          [attestors.ghActionsShopverseSbom]
+        ) > 0
+
+      message: >-
+        The main container image must have a valid Cosign-signed
+        CycloneDX SBOM attestation from the approved Shopverse
+        GitHub Actions SBOM workflow.
+
+    # ============================================================
+    # 2. Verify that the attestation payload is CycloneDX
+    # ============================================================
+    - expression: >-
+        object.spec.template.spec.containers.size() > 0 &&
+        extractPayload(
+          object.spec.template.spec.containers[0].image,
+          attestations.cyclonedxSbom
+        ).bomFormat == 'CycloneDX'
+
+      message: >-
+        The main container image must have a CycloneDX SBOM
+        attestation.
