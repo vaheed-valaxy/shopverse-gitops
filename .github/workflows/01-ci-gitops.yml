@@ -8,8 +8,20 @@ on:
       
       # - 'charts/**'
       # - 'envs/**'
-      # - '.github/workflows/01-ci-dev-gitops.yml'
+      # - '.github/workflows/01-ci-gitops.yml'
       # - '.github/workflows/reusable-dev-gitops.yml'
+
+  pull_request:
+    branches: main  
+    paths:
+      - 'envs/qa/**'
+      - 'envs/prod/**'
+      
+      # - 'charts/**'
+      # - 'envs/**'
+      # - '.github/workflows/01-ci-gitops.yml'
+      # - '.github/workflows/reusable-qa-gitops-pr.yml'
+      # - '.github/workflows/reusable-prod-gitops-pr.yml'
     
 permissions:
   contents: read
@@ -56,6 +68,17 @@ jobs:
 
           # if [[ "$file" =~ ^envs/([^/]+)/values-([^/]+)\.yaml$ ]]; then
 
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            DIFF_BASE="${{ github.event.pull_request.base.sha }}"
+            DIFF_HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            DIFF_BASE="${{ github.event.before }}"
+            DIFF_HEAD="${{ github.sha }}"
+          fi
+          
+          echo "Diff base: $DIFF_BASE"
+          echo "Diff head: $DIFF_HEAD"
+
           while read -r file; do
 
             echo "File changed: $file"
@@ -87,11 +110,7 @@ jobs:
         
             fi
         
-          done < <(
-            git diff --name-only \
-              "${{ github.event.pull_request.base.sha }}" \
-              "${{ github.event.pull_request.head.sha }}"
-          )
+          done < <(git diff --name-only "$DIFF_BASE" "$DIFF_HEAD")
 
   # ============================================================
   # 2. Run reusable validation workflow
