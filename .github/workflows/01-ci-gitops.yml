@@ -84,11 +84,22 @@ jobs:
             DIFF_BASE="${{ github.event.before }}"
             DIFF_HEAD="${{ github.sha }}"
       
-          else
+          # else
       
-            echo "::error::Unsupported event type: ${{ github.event_name }}"
+          #   echo "::error::Unsupported event type: ${{ github.event_name }}"
+          #   exit 1
+      
+          fi
+
+          # ------------------------------------------------------------
+          # Validate Git diff range
+          # ------------------------------------------------------------
+          if [[ -z "$DIFF_BASE" || -z "$DIFF_HEAD" ]]; then
+            echo "::error::Git diff range is invalid."
+            echo "::error::Event      : ${{ github.event_name }}"
+            echo "::error::DIFF_BASE  : '$DIFF_BASE'"
+            echo "::error::DIFF_HEAD  : '$DIFF_HEAD'"
             exit 1
-      
           fi
       
           echo "Event     : ${{ github.event_name }}"
