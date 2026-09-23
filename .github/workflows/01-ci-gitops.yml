@@ -74,20 +74,28 @@ jobs:
           # ------------------------------------------------------------
           # Determine Git diff range based on workflow event
           # ------------------------------------------------------------
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          if [[ "${{ github.event_name }}" == "push" ]]; then
       
             DIFF_BASE="${{ github.event.pull_request.base.sha }}"
             DIFF_HEAD="${{ github.event.pull_request.head.sha }}"
       
-          elif [[ "${{ github.event_name }}" == "push" ]]; then
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
       
             DIFF_BASE="${{ github.event.before }}"
             DIFF_HEAD="${{ github.sha }}"
       
-          # else
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+
+            # Manual testing:
+            # compare the current commit with its parent.
+            
+            DIFF_HEAD="${{ github.sha }}"
+            DIFF_BASE="$(git rev-parse "${{ github.sha }}^")"
       
-          #   echo "::error::Unsupported event type: ${{ github.event_name }}"
-          #   exit 1
+          else
+      
+            echo "::error::Unsupported event type: ${{ github.event_name }}"
+            exit 1
       
           fi
 
