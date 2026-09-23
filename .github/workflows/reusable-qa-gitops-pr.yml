@@ -259,9 +259,11 @@ jobs:
           category: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}
           wait-for-processing: true
 
+
       # ============================================================
       # 13. Install Kyverno CLI
       # ============================================================
+
       - name: Install Kyverno CLI
         shell: bash
         run: |
@@ -283,6 +285,7 @@ jobs:
             /usr/local/bin/kyverno
       
           kyverno version
+
           
       # ============================================================
       # 14. Kyverno CLI validation
