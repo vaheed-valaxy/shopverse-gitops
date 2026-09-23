@@ -30,7 +30,26 @@ on:
         required: false
         type: string
         default: ubuntu-latest
+       
+      aws-account-id:
+        description: "AWS PROD Account ID"
+        required: true
+        type: string
+        
+      aws-region:
+        description: "AWS PROD Region"
+        required: true
+        type: string
 
+      aws-ecr-role-arn:
+        description: "AWS ECR role for PROD"
+        required: true
+        type: string
+
+      aws-prod-ecr-repo:
+        description: "AWS PROD ECR Repo"
+        required: true
+        type: string
 
 env:
   TRIVY_VERSION: v0.72.0
@@ -50,6 +69,7 @@ jobs:
       contents: read
       security-events: write
       pull-requests: read
+      id-token: write
 
     steps:
 
@@ -258,10 +278,57 @@ jobs:
           sarif_file: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}.sarif
           category: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}
           wait-for-processing: true
+          
+    
+      # ============================================================
+      # 13. Configure AWS credentials using GitHub OIDC
+      # ============================================================
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ inputs.aws-ecr-role-arn }}
+          aws-region: ${{ inputs.aws-region }}
+          allowed-account-ids: ${{ inputs.aws-account-id }} # '254405569649'
+          
+
+      # ============================================================
+      # 14. Verify AWS identity
+      # ============================================================
+      
+      - name: Verify AWS identity
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          echo "AWS identity:"
+          aws sts get-caller-identity
+      
+          echo ""
+          echo "AWS region:"
+          echo "${{ inputs.aws-region }}"
 
 
       # ============================================================
-      # 13. Install Kyverno CLI
+      # 15. Verify PROD ECR access
+      # ============================================================
+      
+      - name: Verify PROD ECR access
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          echo "Testing access to PROD ECR repository..."
+      
+          aws ecr describe-repositories \
+            --repository-names "${{ inputs.aws-prod-ecr-repo }}" \
+            --region "${{ inputs.aws-region }}"
+      
+          echo "PROD ECR:${{ inputs.aws-prod-ecr-repo }} access successful."
+
+          
+      # ============================================================
+      # 16. Install Kyverno CLI
       # ============================================================
 
       - name: Install Kyverno CLI
@@ -288,7 +355,7 @@ jobs:
 
           
       # ============================================================
-      # 14. Kyverno CLI validation
+      # 17. Kyverno CLI validation
       # ============================================================
       
       - name: Kyverno policy validation
@@ -313,30 +380,40 @@ jobs:
             exit 1
           fi
       
-          if [[ "${{ inputs.environment }}" == "prod" ]]; then
+          echo "Policies: kyverno/static + kyverno/prod"
       
-            echo "Policies: kyverno/static + kyverno/prod"
+          set +e
       
-            kyverno apply \
-              kyverno/static \
-              kyverno/prod \
-              --resource "$RESOURCE" \
-              --policy-report \
-              2>&1 | tee "$REPORT"
-              
-              # > "$REPORT"
-            
-          fi
+          kyverno apply \
+            kyverno/static \
+            kyverno/prod \
+            --resource "$RESOURCE" \
+            --policy-report \
+            2>&1 | tee "$REPORT"
       
+          KYVERNO_EXIT=${PIPESTATUS[0]}
+      
+          set -e
+      
+          echo ""
           echo "=================================================="
           echo "Kyverno Policy Report"
           echo "=================================================="
       
           cat "$REPORT"
+      
+          if [[ "$KYVERNO_EXIT" -ne 0 ]]; then
+            echo ""
+            echo "::error::Kyverno validation failed with exit code $KYVERNO_EXIT"
+            exit "$KYVERNO_EXIT"
+          fi
+      
+          echo ""
+          echo "Kyverno validation passed."
 
           
       # ============================================================
-      # 14. Kyverno CLI validation
+      # 18. Kyverno Report Upload
       # ============================================================
       
       - name: Upload Kyverno report
