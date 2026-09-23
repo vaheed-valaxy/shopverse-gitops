@@ -1,10 +1,10 @@
 name: GitOps CI - Helm + Kubernetes Security
 
 on:
-  push:
-    branches: main
-    paths:
-      - 'envs/dev/**'
+  # push:
+  #   branches: main
+  #   paths:
+  #     - 'envs/dev/**'
       
   pull_request:
     branches:
