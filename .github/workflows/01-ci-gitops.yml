@@ -75,15 +75,19 @@ jobs:
           # Determine Git diff range based on workflow event
           # ------------------------------------------------------------
           if [[ "${{ github.event_name }}" == "push" ]]; then
-
-            DIFF_BASE="${{ github.event.before }}"
+          
+            # DEV direct deployment
+            
             DIFF_HEAD="${{ github.sha }}"
-      
+            DIFF_BASE="${{ github.event.before }}"
+            
           elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-      
-            DIFF_BASE="${{ github.event.pull_request.base.sha }}"
+
+            # QA / PROD PR validation
+            
             DIFF_HEAD="${{ github.event.pull_request.head.sha }}"
-      
+            DIFF_BASE="${{ github.event.pull_request.base.sha }}"
+            
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
 
             # Manual testing:
