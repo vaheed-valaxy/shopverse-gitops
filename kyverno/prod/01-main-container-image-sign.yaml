@@ -1,0 +1,129 @@
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+
+metadata:
+  name: enforce-main-container-image-signature
+
+spec:
+
+  # ============================================================
+  # Reject the resource if image signature verification fails
+  # ============================================================
+  validationActions:
+    - Deny
+
+  # ============================================================
+  # Fail closed if Kyverno cannot verify the image
+  # ============================================================
+  failurePolicy: Fail
+
+  # ============================================================
+  # Admission webhook configuration
+  # ============================================================
+  webhookConfiguration:
+    timeoutSeconds: 30
+
+  # ============================================================
+  # Admission-time validation only
+  # ============================================================
+  evaluation:
+    background:
+      enabled: false
+
+  # ============================================================
+  # AWS ECR credentials
+  #
+  # Kyverno admission controller must have AWS credentials
+  # through IRSA / Pod Identity.
+  #
+  # Required ECR permissions include:
+  #
+  # ecr:GetAuthorizationToken
+  # ecr:BatchGetImage
+  # ============================================================
+  credentials:
+
+    providers:
+      - amazon
+
+  # ============================================================
+  # Resources to validate
+  #
+  # Only Deployment CREATE / UPDATE operations are checked.
+  # ============================================================
+  matchConstraints:
+
+    resourceRules:
+
+      - apiGroups:
+          - apps
+
+        apiVersions:
+          - v1
+
+        operations:
+          - CREATE
+          - UPDATE
+
+        resources:
+          - deployments
+
+  # ============================================================
+  # Only Shopverse ECR images are subject to this policy
+  #
+  # Matches:
+  #
+  # shopverse-dev/backend
+  # shopverse-qa/backend
+  # shopverse/backend
+  # ============================================================
+  matchImageReferences:
+
+    - glob: '254405569649.dkr.ecr.us-east-1.amazonaws.com/shopverse-*/*'
+
+    - glob: '254405569649.dkr.ecr.us-east-1.amazonaws.com/shopverse/*'
+
+  # ============================================================
+  # Cosign keyless trusted signer
+  # ============================================================
+  attestors:
+
+    - name: ghActionsShopverseCosign
+
+      cosign:
+
+        keyless:
+
+          identities:
+
+            - issuer: 'https://token.actions.githubusercontent.com'
+
+              subject: 'https://github.com/vaheed-valaxy/central-github-actions/.github/workflows/reusable-image-sign.yml@refs/heads/main'
+
+        # ========================================================
+        # Sigstore Rekor transparency log
+        # ========================================================
+        ctlog:
+
+          url: 'https://rekor.sigstore.dev'
+
+  # ============================================================
+  # Verify ONLY the main container
+  #
+  # containers[0] = first application container
+  #
+  # initContainers are NOT checked by this expression.
+  # ============================================================
+  validations:
+
+    - expression: >-
+        object.spec.template.spec.containers.size() > 0 &&
+        verifyImageSignatures(
+          object.spec.template.spec.containers[0].image,
+          [attestors.ghActionsShopverseCosign]
+        ) > 0
+
+      message: >-
+        The main container image must have a valid Cosign keyless
+        signature issued by the approved Shopverse GitHub Actions
+        signing workflow.
