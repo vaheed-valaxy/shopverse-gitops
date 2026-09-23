@@ -1,6 +1,8 @@
 name: GitOps CI - Helm + Kubernetes Security
 
 on:
+  workflow_dispatch:
+    
   push:
     branches: main
     paths:
@@ -52,12 +54,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect Changes
+      - name: Detect chaged values file
         id: detect
         shell: bash
         run: |
 
           set -euo pipefail
+          changed_values_count=0
           # ----------------------------------------------------------------
           # We only care about files like:
           #
@@ -68,17 +71,33 @@ jobs:
 
           # if [[ "$file" =~ ^envs/([^/]+)/values-([^/]+)\.yaml$ ]]; then
 
+          # ------------------------------------------------------------
+          # Determine Git diff range based on workflow event
+          # ------------------------------------------------------------
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+      
             DIFF_BASE="${{ github.event.pull_request.base.sha }}"
             DIFF_HEAD="${{ github.event.pull_request.head.sha }}"
-          else
+      
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+      
             DIFF_BASE="${{ github.event.before }}"
             DIFF_HEAD="${{ github.sha }}"
+      
+          else
+      
+            echo "::error::Unsupported event type: ${{ github.event_name }}"
+            exit 1
+      
           fi
-          
-          echo "Diff base: $DIFF_BASE"
-          echo "Diff head: $DIFF_HEAD"
+      
+          echo "Event     : ${{ github.event_name }}"
+          echo "Diff base : $DIFF_BASE"
+          echo "Diff head : $DIFF_HEAD"
 
+          # ------------------------------------------------------------
+          # Find changed files
+          # ------------------------------------------------------------
           while read -r file; do
 
             echo "File changed: $file"
