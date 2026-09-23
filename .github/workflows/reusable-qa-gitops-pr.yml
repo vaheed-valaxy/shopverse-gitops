@@ -36,6 +36,7 @@ env:
   TRIVY_VERSION: v0.72.0
   HELM_VERSION: v3.19.0
   KUBECONFORM_VERSION: v0.7.0
+  KYVERNO_VERSION: v1.19.0
 
 
 jobs:
@@ -258,35 +259,88 @@ jobs:
           category: trivy-k8s-${{ inputs.component }}-${{ inputs.environment }}
           wait-for-processing: true
 
-
       # ============================================================
-      # 13. Kyverno CLI validation
+      # 13. Install Kyverno CLI
+      # ============================================================
+      - name: Install Kyverno CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          KYVERNO_VERSION="v1.19.0"
+          KYVERNO_ARCHIVE="kyverno-cli_${KYVERNO_VERSION}_linux_x86_64.tar.gz"
+      
+          curl -fL \
+            -o "/tmp/${KYVERNO_ARCHIVE}" \
+            "https://github.com/kyverno/kyverno/releases/download/${KYVERNO_VERSION}/${KYVERNO_ARCHIVE}"
+      
+          tar -xzf \
+            "/tmp/${KYVERNO_ARCHIVE}" \
+            -C /tmp
+      
+          sudo install -m 0755 \
+            /tmp/kyverno \
+            /usr/local/bin/kyverno
+      
+          kyverno version
+          
+      # ============================================================
+      # 14. Kyverno CLI validation
       # ============================================================
       - name: Kyverno policy validation
         shell: bash
         run: |
           set -euo pipefail
-
+      
           mkdir -p kyverno-reports
-
-          docker run --rm \
-            -v "$PWD:/work" \
-            -w /work \
-            ghcr.io/kyverno/kyverno-cli:v1.19.0 \
-            apply kyverno/static \
-            --resource "rendered/${{ inputs.component }}/${{ inputs.component }}.yaml" \
-            --policy-report \
-            > "kyverno-reports/${{ inputs.component }}-kyverno-report.yaml"
-
-          
+      
+          RESOURCE="rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
+          REPORT="kyverno-reports/${{ inputs.component }}-kyverno-report.yaml"
+      
+          echo "=================================================="
+          echo "Kyverno Policy Validation"
+          echo "=================================================="
+          echo "Environment : ${{ inputs.environment }}"
+          echo "Component   : ${{ inputs.component }}"
+          echo "Resource    : $RESOURCE"
+      
+          if [[ ! -f "$RESOURCE" ]]; then
+            echo "::error::Rendered Kubernetes resource not found: $RESOURCE"
+            exit 1
+          fi
+      
+          if [[ "${{ inputs.environment }}" == "prod" ]]; then
+      
+            echo "Policies: kyverno/static + kyverno/prod"
+      
+            kyverno apply \
+              kyverno/static \
+              kyverno/prod \
+              --resource "$RESOURCE" \
+              --policy-report \
+              > "$REPORT"
+      
+          else
+      
+            echo "Policies: kyverno/static"
+      
+            kyverno apply \
+              kyverno/static \
+              --resource "$RESOURCE" \
+              --policy-report \
+              > "$REPORT"
+      
+          fi
+      
           echo "=================================================="
           echo "Kyverno Policy Report"
           echo "=================================================="
+      
+          cat "$REPORT"
 
-          cat "kyverno-reports/${{ inputs.component }}-kyverno-report.yaml"
 
       # ============================================================
-      # 14. Kyverno CLI validation
+      # 15. Kyverno CLI validation
       # ============================================================
       - name: Upload Kyverno report
         if: always()
