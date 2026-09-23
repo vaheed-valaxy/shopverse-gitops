@@ -54,7 +54,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect chaged values file
+      - name: Detect changed values file
         id: detect
         shell: bash
         run: |
