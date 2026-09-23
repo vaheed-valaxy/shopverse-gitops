@@ -313,18 +313,7 @@ jobs:
             exit 1
           fi
       
-          if [[ "${{ inputs.environment }}" == "prod" ]]; then
-      
-            echo "Policies: kyverno/static + kyverno/prod"
-      
-            kyverno apply \
-              kyverno/static \
-              kyverno/prod \
-              --resource "$RESOURCE" \
-              --policy-report \
-              > "$REPORT"
-      
-          else
+          if [[ "${{ inputs.environment }}" == "qa" ]]; then
       
             echo "Policies: kyverno/static"
       
@@ -333,7 +322,7 @@ jobs:
               --resource "$RESOURCE" \
               --policy-report \
               > "$REPORT"
-      
+              
           fi
       
           echo "=================================================="
