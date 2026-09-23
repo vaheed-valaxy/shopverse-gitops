@@ -177,6 +177,7 @@ jobs:
     # secrets:
     #   DEV_ARGOCD_AUTH_TOKEN: ${{ secrets.DEV_ARGOCD_AUTH_TOKEN }}
 
+
   Qa-GitOps-Job:
     if: needs.Detect-Changes-Job.outputs.environment == 'qa'
     needs: Detect-Changes-Job
