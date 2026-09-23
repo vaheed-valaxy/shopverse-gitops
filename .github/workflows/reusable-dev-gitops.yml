@@ -1,4 +1,4 @@
-name: Reusable - GitOps Helm + Kubernetes Security
+name: Reusable - DEV GitOps Helm + Kubernetes Security
 
 on:
   workflow_call:
