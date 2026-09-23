@@ -346,6 +346,7 @@ jobs:
       # ============================================================
       # 14. Kyverno CLI validation
       # ============================================================
+      
       - name: Upload Kyverno report
         if: always()
         uses: actions/upload-artifact@v4
