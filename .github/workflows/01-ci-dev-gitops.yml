@@ -6,19 +6,11 @@ on:
     paths:
       - 'envs/dev/**'
       
-  pull_request:
-    branches:
-      - main
-    paths:
       # - 'charts/**'
       # - 'envs/**'
-      
-      - 'envs/qa/**'
-      - 'envs/prod/**'
-      
-      # - '.github/workflows/ci-gitops.yml'
-      # - '.github/workflows/reusable-gitops-pr.yml'
-
+      # - '.github/workflows/01-ci-dev-gitops.yml'
+      # - '.github/workflows/reusable-dev-gitops.yml'
+    
 permissions:
   contents: read
   pull-requests: read
