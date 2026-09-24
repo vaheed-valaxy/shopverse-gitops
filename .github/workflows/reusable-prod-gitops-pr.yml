@@ -401,59 +401,173 @@ jobs:
       # ============================================================
       # 17. Kyverno CLI validation
       # ============================================================
-      
-      - name: Kyverno policy validation
+      # Kyverno + Cosign security validation
+      #
+      # Temporary workaround:
+      #
+      # Kyverno 1.19.x currently has an issue validating the
+      # Cosign SBOM attestation through ImageValidatingPolicy.
+      #
+      # Therefore:
+      #
+      #   Kyverno:
+      #     - image digest
+      #     - ECR registry
+      #     - image signature
+      #
+      #   Cosign:
+      #     - SBOM attestation signature
+      #     - exact certificate identity
+      #     - OIDC issuer
+      #     - CycloneDX predicate
+      #
+      # The production Kyverno SBOM ImageValidatingPolicy remains
+      # in kyverno/prod and can be re-enabled once Kyverno fixes
+      # the attestation verification issue.
+      # ============================================================
+
+      - name: Kyverno + Cosign security validation
         shell: bash
         run: |
           set -euo pipefail
-      
+
           mkdir -p kyverno-reports
-      
+          mkdir -p kyverno-ci/static
+          mkdir -p kyverno-ci/prod
+
           RESOURCE="rendered/${{ inputs.component }}/${{ inputs.component }}.yaml"
           REPORT="kyverno-reports/${{ inputs.component }}-kyverno-report.yaml"
-      
+
           echo "=================================================="
-          echo "Kyverno Policy Validation"
+          echo "Kyverno + Cosign Security Validation"
           echo "=================================================="
           echo "Environment : ${{ inputs.environment }}"
           echo "Component   : ${{ inputs.component }}"
           echo "Resource    : $RESOURCE"
-      
-          if [[ ! -f "$RESOURCE" ]]; then
-            echo "::error::Rendered Kubernetes resource not found: $RESOURCE"
-            exit 1
-          fi
-      
-          echo "Policies: kyverno/static + kyverno/prod"
-      
+          echo
+
+          # ----------------------------------------------------------
+          # Copy static Kyverno policies
+          # ----------------------------------------------------------
+
+          cp kyverno/static/*.yaml kyverno-ci/static/
+
+          # ----------------------------------------------------------
+          # Copy production Kyverno policies except the SBOM IVPOL.
+          #
+          # The SBOM attestation itself is verified separately with
+          # Cosign below.
+          # ----------------------------------------------------------
+
+          for POLICY in kyverno/prod/*.yaml; do
+
+            if grep -q \
+              'name: enforce-main-container-sbom-attestation' \
+              "$POLICY"
+            then
+              echo "Temporarily excluding Kyverno SBOM IVPOL:"
+              echo "  $POLICY"
+              continue
+            fi
+
+            cp "$POLICY" kyverno-ci/prod/
+
+          done
+
+          echo
+          echo "=================================================="
+          echo "Kyverno Policy Validation"
+          echo "=================================================="
+
           set +e
-      
+
           kyverno apply \
-            kyverno/static \
-            kyverno/prod \
+            kyverno-ci/static \
+            kyverno-ci/prod \
             --resource "$RESOURCE" \
             --policy-report \
             2>&1 | tee "$REPORT"
-      
+
           KYVERNO_EXIT=${PIPESTATUS[0]}
-      
+
           set -e
-      
-          echo ""
+
+          echo
           echo "=================================================="
           echo "Kyverno Policy Report"
           echo "=================================================="
-      
+
           cat "$REPORT"
-      
+
           if [[ "$KYVERNO_EXIT" -ne 0 ]]; then
-            echo ""
+            echo
             echo "::error::Kyverno validation failed with exit code $KYVERNO_EXIT"
             exit "$KYVERNO_EXIT"
           fi
-      
-          echo ""
+
+          echo
           echo "Kyverno validation passed."
+
+          # ==========================================================
+          # Extract the exact image from the rendered Deployment
+          # ==========================================================
+
+          IMAGE="$(yq -r \
+            '.spec.template.spec.containers[0].image' \
+            "$RESOURCE")"
+
+          if [[ -z "$IMAGE" || "$IMAGE" == "null" ]]; then
+            echo "::error::Unable to extract main container image."
+            exit 1
+          fi
+
+          echo
+          echo "=================================================="
+          echo "SBOM Attestation Verification"
+          echo "=================================================="
+          echo "Image:"
+          echo "$IMAGE"
+
+          # ==========================================================
+          # Verify CycloneDX SBOM attestation directly with Cosign.
+          #
+          # Exact certificate identity is intentionally used instead
+          # of a regexp because the trusted workflow is known.
+          # ==========================================================
+
+          cosign verify-attestation \
+            --type cyclonedx \
+            --certificate-identity \
+            'https://github.com/vaheed-valaxy/central-github-actions/.github/workflows/reusable-sbom-attestation.yml@refs/heads/main' \
+            --certificate-oidc-issuer \
+            'https://token.actions.githubusercontent.com' \
+            "$IMAGE" \
+            > /tmp/sbom-attestation.json
+
+          echo
+          echo "Cosign SBOM attestation signature verification passed."
+
+          # ==========================================================
+          # Verify the attestation payload is CycloneDX.
+          # ==========================================================
+
+          if ! jq -e '
+            .payload
+            | @base64d
+            | fromjson
+            | .predicate.bomFormat == "CycloneDX"
+          ' /tmp/sbom-attestation.json >/dev/null
+          then
+            echo "::error::SBOM attestation is not a CycloneDX SBOM."
+            exit 1
+          fi
+
+          echo "CycloneDX SBOM payload verification passed."
+
+          echo
+          echo "=================================================="
+          echo "Security Validation PASSED"
+          echo "=================================================="
 
           
       # ============================================================
