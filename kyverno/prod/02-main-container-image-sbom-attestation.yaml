@@ -81,8 +81,8 @@ spec:
       referrer:
 
         # Cosign CycloneDX SBOM attestation
-        # type: 'https://cyclonedx.org/bom'
-        type: 'sbom/cyclone-dx'
+        # type: 'sbom/cyclone-dx'
+        type: 'https://cyclonedx.org/bom'
 
   # ============================================================
   # Keyless Cosign attestor
