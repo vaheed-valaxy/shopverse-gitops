@@ -44,19 +44,14 @@ spec:
   # Kubernetes resources to inspect
   # ============================================================
   matchConstraints:
-
     resourceRules:
-
       - apiGroups:
           - apps
-
         apiVersions:
           - v1
-
         operations:
           - CREATE
           - UPDATE
-
         resources:
           - deployments
 
@@ -64,9 +59,7 @@ spec:
   # Only validate Shopverse ECR images
   # ============================================================
   matchImageReferences:
-
     - glob: '254405569649.dkr.ecr.us-east-1.amazonaws.com/shopverse-*/*'
-
     - glob: '254405569649.dkr.ecr.us-east-1.amazonaws.com/shopverse/*'
 
   # ============================================================
@@ -77,18 +70,9 @@ spec:
   # It is NOT the in-toto predicateType.
   # ============================================================
   attestations:
-
     - name: cyclonedxSbom
-
       referrer:
         type: sbom/cyclone-dx
-
-  # attestations:
-
-  #   - name: cyclonedxSbom
-
-  #     intoto:
-  #       type: "https://cyclonedx.org/bom"
 
   # ============================================================
   # Keyless Cosign attestor
@@ -97,21 +81,13 @@ spec:
   # the SBOM attestation.
   # ============================================================
   attestors:
-
     - name: ghActionsShopverseSbom
-
       cosign:
-
         keyless:
-
           identities:
-
             - issuer: 'https://token.actions.githubusercontent.com'
-
               subject: 'https://github.com/vaheed-valaxy/central-github-actions/.github/workflows/reusable-sbom-attestation.yml@refs/heads/main'
-
         ctlog:
-
           url: 'https://rekor.sigstore.dev'
 
   # ============================================================
