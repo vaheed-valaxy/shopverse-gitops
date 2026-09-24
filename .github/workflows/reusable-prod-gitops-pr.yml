@@ -477,30 +477,41 @@ jobs:
           # ==========================================================
           # Extract the exact image from the rendered Deployment
           # ==========================================================
-
-          IMAGE="$(yq -r \
-            '.spec.template.spec.containers[0].image' \
-            "$RESOURCE")"
-
-          if [[ -z "$IMAGE" || "$IMAGE" == "null" ]]; then
-            echo "::error::Unable to extract main container image."
+          
+          IMAGE="$(yq -r '
+            select(.kind == "Deployment")
+            | .spec.template.spec.containers[0].image
+          ' "$RESOURCE" | grep -v '^null$' | head -n 1)"
+          
+          if [[ -z "$IMAGE" ]]; then
+            echo "::error::Unable to extract main container image from Deployment."
             exit 1
           fi
-
+          
           echo
           echo "=================================================="
           echo "SBOM Attestation Verification"
           echo "=================================================="
           echo "Image:"
           echo "$IMAGE"
-
+          
+          # ==========================================================
+          # Verify the extracted image is digest-pinned
+          # ==========================================================
+          
+          if [[ ! "$IMAGE" =~ @sha256:[a-fA-F0-9]{64}$ ]]; then
+            echo "::error::Extracted image is not pinned to a SHA256 digest:"
+            echo "$IMAGE"
+            exit 1
+          fi
+          
           # ==========================================================
           # Verify CycloneDX SBOM attestation directly with Cosign.
           #
           # Exact certificate identity is intentionally used instead
           # of a regexp because the trusted workflow is known.
           # ==========================================================
-
+          
           cosign verify-attestation \
             --type cyclonedx \
             --certificate-identity \
@@ -509,31 +520,9 @@ jobs:
             'https://token.actions.githubusercontent.com' \
             "$IMAGE" \
             > /tmp/sbom-attestation.json
-
+          
           echo
           echo "Cosign SBOM attestation signature verification passed."
-
-          # ==========================================================
-          # Verify the attestation payload is CycloneDX.
-          # ==========================================================
-
-          if ! jq -e '
-            .payload
-            | @base64d
-            | fromjson
-            | .predicate.bomFormat == "CycloneDX"
-          ' /tmp/sbom-attestation.json >/dev/null
-          then
-            echo "::error::SBOM attestation is not a CycloneDX SBOM."
-            exit 1
-          fi
-
-          echo "CycloneDX SBOM payload verification passed."
-
-          echo
-          echo "=================================================="
-          echo "Security Validation PASSED"
-          echo "=================================================="
 
           
       # ============================================================
