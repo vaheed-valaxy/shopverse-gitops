@@ -7,13 +7,13 @@ metadata:
 spec:
 
   # ============================================================
-  # Reject the resource if image signature verification fails
+  # Reject the resource if validation fails
   # ============================================================
   validationActions:
     - Deny
 
   # ============================================================
-  # Fail closed if Kyverno cannot verify the image
+  # Fail closed if Kyverno cannot verify the image/attestation
   # ============================================================
   failurePolicy: Fail
 
@@ -22,7 +22,7 @@ spec:
   # ============================================================
   webhookConfiguration:
     timeoutSeconds: 30
-    
+
   # ============================================================
   # Admission-time validation only
   # ============================================================
@@ -33,16 +33,14 @@ spec:
   # ============================================================
   # ECR credentials
   #
-  # Required when Kyverno needs to access private Amazon ECR.
-  # In EKS, Kyverno uses its AWS identity (IRSA / Pod Identity).
-  # In CI, Kyverno CLI uses the AWS credentials available
-  # to the runner.
+  # Kyverno uses its AWS identity to access private ECR.
+  # In EKS this is normally IRSA / EKS Pod Identity.
   # ============================================================
   credentials:
     providers:
       - amazon
 
-  #============================================================
+  # ============================================================
   # Kubernetes resources to inspect
   # ============================================================
   matchConstraints:
@@ -72,22 +70,24 @@ spec:
     - glob: '254405569649.dkr.ecr.us-east-1.amazonaws.com/shopverse/*'
 
   # ============================================================
-  # SBOM attestation
+  # CycloneDX SBOM attestation
+  #
+  # IMPORTANT:
+  # referrer.type is Kyverno's OCI referrer type.
+  # It is NOT the in-toto predicateType.
   # ============================================================
   attestations:
 
     - name: cyclonedxSbom
 
       referrer:
-
-        # Cosign CycloneDX SBOM attestation
-        # type: 'sbom/cyclone-dx'
-        type: 'https://cyclonedx.org/bom'
+        type: sbom/cyclone-dx
 
   # ============================================================
   # Keyless Cosign attestor
   #
-  # This is the workflow that creates the SBOM attestation.
+  # This is the central reusable workflow that creates
+  # the SBOM attestation.
   # ============================================================
   attestors:
 
@@ -129,7 +129,10 @@ spec:
         GitHub Actions SBOM workflow.
 
     # ============================================================
-    # 2. Verify that the attestation payload is CycloneDX
+    # 2. Verify the attestation payload is CycloneDX
+    #
+    # extractPayload() is intentionally executed after
+    # verifyAttestationSignatures().
     # ============================================================
     - expression: >-
         object.spec.template.spec.containers.size() > 0 &&
