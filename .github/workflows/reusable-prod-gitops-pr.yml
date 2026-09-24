@@ -326,7 +326,7 @@ jobs:
             --repository-names "${{ inputs.aws-prod-ecr-repo }}" \
             --region "${{ inputs.aws-region }}"
       
-          echo "PROD ECR:${{ inputs.aws-prod-ecr-repo }} access successful."
+          echo "PROD ECR: ${{ inputs.aws-prod-ecr-repo }} access successful."
 
           
       # ============================================================
