@@ -76,12 +76,19 @@ spec:
   # referrer.type is Kyverno's OCI referrer type.
   # It is NOT the in-toto predicateType.
   # ============================================================
+  # attestations:
+
+  #   - name: cyclonedxSbom
+
+  #     referrer:
+  #       type: sbom/cyclone-dx
+
   attestations:
 
     - name: cyclonedxSbom
 
-      referrer:
-        type: sbom/cyclone-dx
+      intoto:
+        type: "https://cyclonedx.org/bom"
 
   # ============================================================
   # Keyless Cosign attestor
