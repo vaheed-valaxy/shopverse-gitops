@@ -478,12 +478,19 @@ jobs:
           # Extract the exact image from the rendered Deployment
           # ==========================================================
           
+          DEPLOYMENT_COUNT="$(yq -r 'select(.kind == "Deployment") | .metadata.name' "$RESOURCE" | wc -l)"
+          
+          if [[ "$DEPLOYMENT_COUNT" -ne 1 ]]; then
+            echo "::error::Expected exactly one Deployment in $RESOURCE, found $DEPLOYMENT_COUNT."
+            exit 1
+          fi
+          
           IMAGE="$(yq -r '
             select(.kind == "Deployment")
             | .spec.template.spec.containers[0].image
-          ' "$RESOURCE" | grep -v '^null$' | head -n 1)"
+          ' "$RESOURCE")"
           
-          if [[ -z "$IMAGE" ]]; then
+          if [[ -z "$IMAGE" || "$IMAGE" == "null" ]]; then
             echo "::error::Unable to extract main container image from Deployment."
             exit 1
           fi
@@ -506,10 +513,7 @@ jobs:
           fi
           
           # ==========================================================
-          # Verify CycloneDX SBOM attestation directly with Cosign.
-          #
-          # Exact certificate identity is intentionally used instead
-          # of a regexp because the trusted workflow is known.
+          # Verify CycloneDX SBOM attestation directly with Cosign
           # ==========================================================
           
           cosign verify-attestation \
