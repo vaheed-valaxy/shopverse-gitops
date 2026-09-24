@@ -363,6 +363,14 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
+
+      # ============================================================
+      # Login to PROD ECR
+      # ============================================================
+
+      - name: Login to PROD ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
         
       # ============================================================
       # 17. Kyverno CLI validation + Cosign validation(SBOM)
