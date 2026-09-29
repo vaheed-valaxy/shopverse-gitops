@@ -42,7 +42,12 @@ Store token in GitHub:
 ```text
 DEV_ARGOCD_AUTH_TOKEN
 ```
-
+GitHub Actions:  
+```bash
+argocd login 127.0.0.1:8090 \
+  --auth-token "$DEV_ARGOCD_AUTH_TOKEN" \
+  --insecure
+```
 ```bash
 kubectl get configmap argocd-cm -n argocd -o yaml
 kubectl get applications.argoproj.io -n argocd
