@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: shopverse-dev-app-project
+  name: shopverse-dev
   namespace: argocd
 
 spec:
@@ -44,20 +44,17 @@ spec:
   # ============================================================
   roles:
 
-    - name: github-actions-dev
-
-      description: >
-        GitHub Actions role for syncing Shopverse DEV applications.
-
+    - name: shopverse-gh-actions-dev
+      description: GitHub Actions role for syncing Shopverse DEV applications.
+      
       policies:
 
         # Allow GitHub Actions to read the DEV applications
-        - p, proj:shopverse-dev-app-project:github-actions-dev,
-          applications, get, shopverse-dev-app-project/*, allow
+        - p, proj:shopverse-dev:shopverse-gh-actions-dev, applications, get, shopverse-dev-app-project/*, allow 
 
         # Allow GitHub Actions to sync the DEV applications
-        - p, proj:shopverse-dev-app-project:github-actions-dev,
-          applications, sync, shopverse-dev-app-project/*, allow
+        - p, proj:shopverse-dev:shopverse-gh-actions-dev, applications, sync, shopverse-dev-app-project/*, allow
+          
 
   # ============================================================
   # Description
