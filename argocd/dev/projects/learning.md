@@ -18,10 +18,13 @@ data:
 `Your AppProject`
 ```yaml
 roles:
-  - name: github-actions-dev
+  - name: shopverse-gh-actions-dev
     policies:
-      - p, proj:shopverse-dev:github-actions-dev, applications, get, ...
-      - p, proj:shopverse-dev-app-project:github-actions-dev, applications, sync, ...
+        # Allow GitHub Actions to read the DEV applications
+        - p, proj:shopverse-dev:shopverse-gh-actions-dev, applications, get, shopverse-dev-app-project/*, allow 
+
+        # Allow GitHub Actions to sync the DEV applications
+        - p, proj:shopverse-dev:shopverse-gh-actions-dev, applications, sync, shopverse-dev-app-project/*, allow
 ```
 
 Generate token:  
