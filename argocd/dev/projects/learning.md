@@ -1,8 +1,14 @@
+
+
+```bash
+kubectl get configmap argocd-cm -n argocd
+kubectl get configmap argocd-cm -n argocd -o yaml
+```
 `argocd-cm`
 ```yaml
 data:
   accounts.shopverse-gh-actions-dev: apiKey
-
+---------------------------------------------
 
 apiVersion: v1
 kind: ConfigMap
