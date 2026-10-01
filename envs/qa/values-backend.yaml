@@ -6,7 +6,7 @@
 #--------------- Container --------------------------#
 image:
   ecr_registry: 254405569649.dkr.ecr.us-east-1.amazonaws.com
-  ecr_repository: shopverse/backend
+  ecr_repository: shopverse-qa/backend
   tag: v1
   digest: sha256:e9f32121e2938e8f36d9fd276b5f2a8608b237992c4b9c4a37ecd5a9af0cfc9e
 containerName: backend
