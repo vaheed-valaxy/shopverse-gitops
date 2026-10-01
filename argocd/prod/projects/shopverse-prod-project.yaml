@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: shopverse-prod
+  namespace: argocd
+
+spec:
+
+  # ============================================================
+  # Allowed Git repositories
+  # ============================================================
+  sourceRepos:
+    - https://github.com/vaheed-valaxy/shopverse-gitops.git
+
+  # ============================================================
+  # Allowed destinations
+  # ============================================================
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: shopverse-prod
+
+  # ============================================================
+  # Cluster-wide resources this AppProject can manage
+  # ============================================================
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+    - group: "rbac.authorization.k8s.io"
+      kind: Role
+
+    - group: "rbac.authorization.k8s.io"
+      kind: RoleBinding
+
+  # ============================================================
+  # Namespace-scoped resources this AppProject can manage
+  # ============================================================
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  # ============================================================
+  # AppProject role for GitHub Actions
+  # ============================================================
+  roles:
+
+    - name: shopverse-gh-actions-prod
+      description: GitHub Actions role for syncing Shopverse PROD applications.
+      
+      policies:
+
+        # Allow GitHub Actions to read the QA applications
+        - p, proj:shopverse-prod:shopverse-gh-actions-prod, applications, get, shopverse-prod/*, allow 
+
+        # Allow GitHub Actions to sync the QA applications
+        - p, proj:shopverse-prod:shopverse-gh-actions-prod, applications, sync, shopverse-prod/*, allow
+          
+
+  # ============================================================
+  # Description
+  # ============================================================
+  description: >
+    Single AppProject for prod environment of Shopverse application.
+    Provides GitOps permissions and allows automated namespace creation.
