@@ -506,7 +506,7 @@ jobs:
       - name: Login to Argo CD & Check App
         shell: bash
         env:
-          ARGOCD_AUTH_TOKEN: ${{ secrets.DEV_ARGOCD_AUTH_TOKEN }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.DEV_ARGOCD_AUTH_TOKEN }}       # Setting 'ARGOCD_AUTH_TOKEN' will automatically use this user as logged in user
           ARGOCD_HOST: ${{ env.ARGOCD_HOST }}
           ARGOCD_PORT: ${{ env.ARGOCD_PORT }}
           ARGOCD_APP: ${{ inputs.argocd-app }}  
