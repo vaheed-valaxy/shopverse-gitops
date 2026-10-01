@@ -63,14 +63,14 @@ configmap:
     FRONTEND_ORIGIN: "*"
 secret:
   name: shopverse-dev-mysql-jwt-credentials
-  create: false # Creates through ESO    
+  create: false      # Creates through ESO    
 envFrom:
   enabled: true
   values:
     - configMapRef:
         name: backend-configmap
     - secretRef:
-        name: db-credentials # Creates through ESO   
+        name: shopverse-dev-mysql-jwt-credentials    # Creates through ESO   
 #--------------- Limits & Requests ------------------#
 resources:
   enabled: true
