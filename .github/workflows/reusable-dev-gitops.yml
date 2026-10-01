@@ -180,11 +180,9 @@ jobs:
           echo "Chart       : ${{ inputs.chart-path }}"
           echo "Values file : ${{ inputs.values-file }}"
 
-          helm lint \
-            "${{ inputs.chart-path }}" \
-            -f "${{ inputs.values-file }}"
-
-
+          helm lint "${{ inputs.chart-path }}" -f "${{ inputs.values-file }}"
+            
+            
       # ======================================================
       # 5. Render Helm Templates
       # ======================================================
@@ -235,21 +233,15 @@ jobs:
 
           echo "Downloading Kubeconform ${KUBECONFORM_VERSION}..."
 
-          curl -fsSL \
-            "$KUBECONFORM_URL" \
-            -o /tmp/kubeconform.tar.gz
-
-          tar -xzf \
-            /tmp/kubeconform.tar.gz \
-            -C /tmp
-
-          sudo install \
-            /tmp/kubeconform \
-            /usr/local/bin/kubeconform
-
+          curl -fsSL "$KUBECONFORM_URL" -o /tmp/kubeconform.tar.gz
+             
+          tar -xzf /tmp/kubeconform.tar.gz -C /tmp
+             
+          sudo install /tmp/kubeconform /usr/local/bin/kubeconform
+            
           kubeconform -v
-
-
+          
+          
       # ======================================================
       # 8. Kubeconform Validation
       # ======================================================
@@ -434,10 +426,8 @@ jobs:
 
           aws sts get-caller-identity
 
-          aws eks update-kubeconfig \
-            --region "${AWS_REGION}" \
-            --name "${EKS_CLUSTER_NAME}"
-
+          aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
+            
           kubectl get nodes
 
 
@@ -483,12 +473,8 @@ jobs:
           rm -f /tmp/argocd-port-forward.pid
           rm -f /tmp/argocd-port-forward.log
 
-          kubectl -n "${ARGOCD_NAMESPACE}" \
-            port-forward \
-            svc/argocd-server \
-            "${ARGOCD_PORT}:80" \
-            > /tmp/argocd-port-forward.log 2>&1 &
-
+          kubectl -n "${ARGOCD_NAMESPACE}" port-forward svc/argocd-server "${ARGOCD_PORT}:80" > /tmp/argocd-port-forward.log 2>&1 &
+            
           echo $! > /tmp/argocd-port-forward.pid
 
           echo "Waiting for Argo CD..."
@@ -514,41 +500,28 @@ jobs:
 
 
       # ======================================================
-      # 6. Login to Argo CD
+      # 6. Login to Argo CD & Check App
       # ======================================================
 
-      - name: Login to Argo CD
+      - name: Login to Argo CD & Check App
         shell: bash
         env:
-          DEV_ARGOCD_AUTH_TOKEN: ${{ secrets.DEV_ARGOCD_AUTH_TOKEN }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.DEV_ARGOCD_AUTH_TOKEN }}
           ARGOCD_HOST: ${{ env.ARGOCD_HOST }}
           ARGOCD_PORT: ${{ env.ARGOCD_PORT }}
+          ARGOCD_APP: ${{ inputs.argocd-app }}  
         run: |
           set -euo pipefail
 
-          argocd login \
-            "${ARGOCD_HOST}:${ARGOCD_PORT}" \
-            --auth-token "${DEV_ARGOCD_AUTH_TOKEN}" \
-            --insecure \
-            --plaintext
-
-
-      # ======================================================
-      # 7. Check Argo CD application
-      # ======================================================
-
-      - name: Check Argo CD application
-        shell: bash
-        env:
-          ARGOCD_APP: ${{ inputs.argocd-app }}
-        run: |
-          set -euo pipefail
-
+          echo "Logged into ArgoCD as:"
+          argocd account get-user-info
+          
+          echo "Getting Application..."
           argocd app get "${ARGOCD_APP}"
 
 
       # ======================================================
-      # 8. Sync EXACT validated Git commit
+      # 7. Sync EXACT validated Git commit
       # ======================================================
 
       - name: Sync DEV application
@@ -565,7 +538,7 @@ jobs:
             
             
       # ======================================================
-      # 9. Wait for DEV application
+      # 8. Wait for DEV application
       # ======================================================
 
       - name: Wait for DEV application
@@ -583,7 +556,7 @@ jobs:
 
 
       # ======================================================
-      # 10. Show final Argo CD status
+      # 9. Show final Argo CD status
       # ======================================================
 
       - name: Show final Argo CD status
@@ -598,7 +571,7 @@ jobs:
 
 
       # ======================================================
-      # 11. Cleanup temporary port-forward
+      # 10. Cleanup temporary port-forward
       # ======================================================
 
       - name: Cleanup Argo CD port-forward
