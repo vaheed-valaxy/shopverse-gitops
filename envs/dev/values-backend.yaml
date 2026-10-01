@@ -62,7 +62,7 @@ configmap:
     DB_NAME: "shopverse"
     FRONTEND_ORIGIN: "*"
 secret:
-  name: db-credentials
+  name: shopverse-dev-mysql-jwt-credentials
   create: false # Creates through ESO    
 envFrom:
   enabled: true
