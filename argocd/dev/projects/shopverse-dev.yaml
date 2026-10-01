@@ -50,10 +50,10 @@ spec:
       policies:
 
         # Allow GitHub Actions to read the DEV applications
-        - p, proj:shopverse-dev:shopverse-gh-actions-dev, applications, get, shopverse-dev-app-project/*, allow 
+        - p, proj:shopverse-dev:shopverse-gh-actions-dev, applications, get, shopverse-dev/*, allow 
 
         # Allow GitHub Actions to sync the DEV applications
-        - p, proj:shopverse-dev:shopverse-gh-actions-dev, applications, sync, shopverse-dev-app-project/*, allow
+        - p, proj:shopverse-dev:shopverse-gh-actions-dev, applications, sync, shopverse-dev/*, allow
           
 
   # ============================================================
