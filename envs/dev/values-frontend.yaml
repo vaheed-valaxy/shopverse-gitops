@@ -1,9 +1,12 @@
-# ───────────────────────────────────────────────────
+# ===================================================
 #                    FRONTEND
-# ───────────────────────────────────────────────────
+# ===================================================
 
 # namespace: shopverse-dev
-#--------------- Container --------------------------#
+
+# ---------------------------------------------------
+# Container
+# ---------------------------------------------------
 image:
   ecr_registry: 254405569649.dkr.ecr.us-east-1.amazonaws.com
   ecr_repository: shopverse-dev/frontend
@@ -12,23 +15,35 @@ image:
 containerName: frontend
 imagePullPolicy: Always
 terminationGracePeriodSeconds: 30
-#--------------- Labels -----------------------------#
+
+# ---------------------------------------------------
+# Labels
+# ---------------------------------------------------
 labels:
   app.kubernetes.io/name: shopverse
   app.kubernetes.io/component: frontend
   app.kubernetes.io/env: dev
   app.kubernetes.io/version: 1.0.0
-#--------------- Deployment -------------------------#
+
+# ---------------------------------------------------
+# Deployment
+# ---------------------------------------------------
 deployment:
   name: frontend-deploy
   replicas: 1
-#--------------- Service ----------------------------#   
+  
+# ---------------------------------------------------
+# Service
+# ---------------------------------------------------  
 service:
   name: frontend-svc
   type: ClusterIP
   port: 8080
   targetPort: 8080
-#--------------- Pod Annotations --------------------#
+
+# ---------------------------------------------------
+# Pod Annotations
+# ---------------------------------------------------
 annotations:
   enabled: false
   enable_checksum: false
@@ -36,7 +51,10 @@ annotations:
   values: {}
   # checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
   # reloader.stakater.com/auto: "true"
-#--------------- Security Context -------------------#
+
+# ---------------------------------------------------
+# Pod Security Context
+# ---------------------------------------------------
 podSecurityContext:
   enabled: true
   values:
@@ -53,7 +71,10 @@ containerSecurityContext:
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 101 # nginx user 101
-#--------------- Configmaps & Secrets ---------------#
+
+# ---------------------------------------------------
+# Configmaps & Secrets
+# ---------------------------------------------------
 configmap:
   enabled: false
   name: frontend-configmap
@@ -72,7 +93,10 @@ envFrom:
         name: frontend-configmap
     - secretRef:
         name: db-credentials # Creates through ESO   
-#--------------- Limits & Requests ------------------#
+
+# ---------------------------------------------------
+# Limits & Requests
+# ---------------------------------------------------
 resources:
   enabled: true
   values:
@@ -82,7 +106,10 @@ resources:
     limits:
       cpu: "100m"
       memory: "128Mi"
-#--------------- Healthcheck Probes ----------------# 
+
+# ---------------------------------------------------
+# Healthcheck Probes
+# ---------------------------------------------------
 startupProbe:
   enabled: true
   values:
@@ -107,7 +134,10 @@ livenessProbe:
       port: 8080
     initialDelaySeconds: 20
     periodSeconds: 30
-#--------------- Autoscaling -----------------------# 
+
+# ---------------------------------------------------
+# Autoscaling
+# ---------------------------------------------------
 autoscaling:
   enabled: false
   values:
@@ -116,7 +146,10 @@ autoscaling:
     maxReplicas: 3
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
-#--------------- Service Account -------------------# 
+
+# ---------------------------------------------------
+# Service Account
+# ---------------------------------------------------
 serviceAccount:
   create: false
   values:
