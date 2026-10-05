@@ -52,7 +52,7 @@ annotations:
     reloader.stakater.com/auto: "true"
     
 # ---------------------------------------------------
-# Pod Security Context
+# Security Context
 # ---------------------------------------------------
 podSecurityContext:
   enabled: true
