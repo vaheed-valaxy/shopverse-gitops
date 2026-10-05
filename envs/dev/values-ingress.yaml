@@ -4,7 +4,7 @@ namespace: shopverse-dev
 # ──────────────────────────────────────--------------------------
 baseIngress:
   enabled: false
-  name: shopverse-base-ingress
+  name: shopverse-dev-base-ingress
   ingressClassName: alb
 
   path: /health
@@ -60,7 +60,7 @@ baseIngress:
 # ──────────────────────────────────────--------------------------
 backendIngress:
   enabled: false
-  name: shopverse-backend-ingress
+  name: shopverse-dev-backend-ingress
   ingressClassName: alb
   
   path: /api
@@ -83,7 +83,7 @@ backendIngress:
 # ──────────────────────────────────────--------------------------
 frontendIngress:
   enabled: false
-  name: shopverse-frontend-ingress
+  name: shopverse-dev-frontend-ingress
   ingressClassName: alb
   
   path: /
