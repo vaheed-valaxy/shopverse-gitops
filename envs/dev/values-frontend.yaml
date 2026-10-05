@@ -71,7 +71,26 @@ containerSecurityContext:
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 101 # nginx user 101
+    
+# ---------------------------------------------------
+# Volumes and Volume Mounts
+# ---------------------------------------------------
+volumes:
+  enabled: true
+  values:
+    - name: nginx-run
+      emptyDir: {}
+    - name: nginx-cache
+      emptyDir: {}
 
+volumeMounts:
+  enabled: true
+  values:
+    - name: nginx-run
+      mountPath: /run
+    - name: nginx-cache
+      mountPath: /var/cache/nginx
+      
 # ---------------------------------------------------
 # Configmaps & Secrets
 # ---------------------------------------------------
