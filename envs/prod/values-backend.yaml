@@ -1,41 +1,59 @@
-# ───────────────────────────────────────────────────
+# ===================================================
 #                    BACKEND
-# ───────────────────────────────────────────────────
+# ===================================================
 
 # namespace: shopverse-dev
-#--------------- Container --------------------------#
+
+# ---------------------------------------------------
+# Container
+# ---------------------------------------------------
 image:
   ecr_registry: 254405569649.dkr.ecr.us-east-1.amazonaws.com
-  ecr_repository: shopverse/backend
+  ecr_repository: shopverse-dev/backend
   tag: v1
-  digest: sha256:ab2c503b3226fdbfbe69aa8392ada9cfed08c3e4aa910ba77ea7384551927182
+  digest: sha256:32cceec4d1ae16664da3dcf2b1d12023bd29943bf86e98542c390c707760c75e
 containerName: backend
 imagePullPolicy: Always
 terminationGracePeriodSeconds: 30
-#--------------- Labels -----------------------------#
+
+# ---------------------------------------------------
+# Labels
+# ---------------------------------------------------
 labels:
   app.kubernetes.io/name: shopverse
   app.kubernetes.io/component: backend
   app.kubernetes.io/env: dev
   app.kubernetes.io/version: 1.0.0
-#--------------- Deployment -------------------------#
+  
+# ---------------------------------------------------
+# Deployment
+# ---------------------------------------------------
 deployment:
   name: backend-deploy
   replicas: 1
-#--------------- Service ----------------------------#   
+  
+# ---------------------------------------------------
+# Service
+# ---------------------------------------------------
 service:
   name: backend-svc
   type: ClusterIP
   port: 8080
   targetPort: 8080
-#--------------- Pod Annotations --------------------#
+  
+# ---------------------------------------------------
+# Pod Annotations
+# ---------------------------------------------------
 annotations:
   enabled: true
   enable_checksum: true
   checksum_file: configmap.yaml
   values:
     reloader.stakater.com/auto: "true"
-#--------------- Security Context -------------------#
+    
+# ---------------------------------------------------
+# Pod Security Context
+# ---------------------------------------------------
 podSecurityContext:
   enabled: true
   values:
@@ -52,26 +70,32 @@ containerSecurityContext:
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 1000
-#--------------- Configmaps & Secrets ---------------#
+    
+# ---------------------------------------------------
+# Configmaps & Secrets
+# ---------------------------------------------------
 configmap:
   enabled: true
   name: backend-configmap
   values:
-    DB_HOST: ""
+    DB_HOST: "shopverse-dev-mysql.ca9aykaigakf.us-east-1.rds.amazonaws.com"
     DB_PORT: "3306"
     DB_NAME: "shopverse"
     FRONTEND_ORIGIN: "*"
 secret:
-  name: shopverse-mysql-jwt-credentials
-  create: false # Creates through ESO    
+  name: shopverse-dev-mysql-jwt-credentials
+  create: false      # Creates through ESO    
 envFrom:
   enabled: true
   values:
     - configMapRef:
         name: backend-configmap
     - secretRef:
-        name: db-credentials # Creates through ESO   
-#--------------- Limits & Requests ------------------#
+        name: shopverse-dev-mysql-jwt-credentials    # Creates through ESO   
+        
+# ---------------------------------------------------
+# Limits & Requests
+# ---------------------------------------------------
 resources:
   enabled: true
   values:
@@ -81,7 +105,10 @@ resources:
     limits:
       cpu: "200m"
       memory: "256Mi"
-#--------------- Healthcheck Probes ----------------# 
+      
+# ---------------------------------------------------
+# Healthcheck Probes
+# ---------------------------------------------------
 startupProbe:
   enabled: true
   values:
@@ -106,7 +133,10 @@ livenessProbe:
       port: 8080
     initialDelaySeconds: 20
     periodSeconds: 30
-#--------------- Autoscaling -----------------------# 
+    
+# ---------------------------------------------------
+# Autoscaling
+# ---------------------------------------------------
 autoscaling:
   enabled: false
   values:
@@ -115,7 +145,10 @@ autoscaling:
     maxReplicas: 3
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
-#--------------- Service Account -------------------# 
+    
+# ---------------------------------------------------
+# Service Account
+# ---------------------------------------------------
 serviceAccount:
   create: false
   values:
