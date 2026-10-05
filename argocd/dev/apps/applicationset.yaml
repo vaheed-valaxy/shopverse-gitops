@@ -20,7 +20,7 @@ spec:
               repoURL: https://github.com/vaheed-valaxy/shopverse-gitops.git
               revision: main
               directories:
-                - path: helm-charts-new/*
+                - path: helm-charts-new/services/*
   
   # Application template
   template:
@@ -41,11 +41,11 @@ spec:
         repoURL: "{{repoURL}}"
         targetRevision: main
         # Dynamic env + service
-        path: "helm-charts-new/{{path.basename}}"
+        path: "helm-charts-new/services/{{path.basename}}"
         helm:
           releaseName: "{{project}}-{{env}}-{{path.basename}}"      # must be <= 53 chars
           valueFiles:
-            - ../../envs/{{env}}/values-{{path.basename}}.yaml      # values.yaml
+            - ../../../envs/{{env}}/values-{{path.basename}}.yaml      # values.yaml
 
       destination:
         server: https://kubernetes.default.svc
