@@ -22,7 +22,7 @@ terminationGracePeriodSeconds: 30
 labels:
   app.kubernetes.io/name: shopverse
   app.kubernetes.io/component: frontend
-  app.kubernetes.io/env: dev
+  app.kubernetes.io/env: prod
   app.kubernetes.io/version: 1.0.0
 
 # ---------------------------------------------------
