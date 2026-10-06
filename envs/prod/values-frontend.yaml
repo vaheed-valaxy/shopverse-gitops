@@ -11,11 +11,10 @@ image:
   ecr_registry: 254405569649.dkr.ecr.us-east-1.amazonaws.com
   ecr_repository: shopverse-dev/frontend
   tag: v1
-  digest: sha256:0af00d4e64ddc72b75b09331f5d93a62270cf7a7aca97d36b2d5352c8fe80fb5
+  digest: sha256:3a1ea7b36f2612ba3a51fb827bca83a862517e7ef919721c4c59940bbdb17628
 containerName: frontend
 imagePullPolicy: Always
 terminationGracePeriodSeconds: 30
-
 # ---------------------------------------------------
 # Labels
 # ---------------------------------------------------
@@ -24,14 +23,12 @@ labels:
   app.kubernetes.io/component: frontend
   app.kubernetes.io/env: dev
   app.kubernetes.io/version: 1.0.0
-
 # ---------------------------------------------------
 # Deployment
 # ---------------------------------------------------
 deployment:
   name: frontend-deploy
   replicas: 1
-  
 # ---------------------------------------------------
 # Service
 # ---------------------------------------------------  
@@ -40,7 +37,6 @@ service:
   type: ClusterIP
   port: 8080
   targetPort: 8080
-
 # ---------------------------------------------------
 # Pod Annotations
 # ---------------------------------------------------
@@ -51,7 +47,6 @@ annotations:
   values: {}
   # checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
   # reloader.stakater.com/auto: "true"
-
 # ---------------------------------------------------
 # Security Context
 # ---------------------------------------------------
@@ -71,7 +66,6 @@ containerSecurityContext:
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 101 # nginx user 101
-    
 # ---------------------------------------------------
 # Volumes and Volume Mounts
 # ---------------------------------------------------
@@ -82,7 +76,6 @@ volumes:
       emptyDir: {}
     - name: nginx-cache
       emptyDir: {}
-
 volumeMounts:
   enabled: true
   values:
@@ -90,7 +83,6 @@ volumeMounts:
       mountPath: /run
     - name: nginx-cache
       mountPath: /var/cache/nginx
-      
 # ---------------------------------------------------
 # Configmaps & Secrets
 # ---------------------------------------------------
@@ -112,7 +104,6 @@ envFrom:
         name: frontend-configmap
     - secretRef:
         name: db-credentials # Creates through ESO   
-
 # ---------------------------------------------------
 # Limits & Requests
 # ---------------------------------------------------
@@ -125,7 +116,6 @@ resources:
     limits:
       cpu: "100m"
       memory: "128Mi"
-
 # ---------------------------------------------------
 # Healthcheck Probes
 # ---------------------------------------------------
@@ -153,7 +143,6 @@ livenessProbe:
       port: 8080
     initialDelaySeconds: 20
     periodSeconds: 30
-
 # ---------------------------------------------------
 # Autoscaling
 # ---------------------------------------------------
@@ -165,7 +154,6 @@ autoscaling:
     maxReplicas: 3
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
-
 # ---------------------------------------------------
 # Service Account
 # ---------------------------------------------------
