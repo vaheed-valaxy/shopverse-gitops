@@ -2,14 +2,14 @@
 #                    FRONTEND
 # ===================================================
 
-# namespace: shopverse-dev
+# namespace: shopverse-prod
 
 # ---------------------------------------------------
 # Container
 # ---------------------------------------------------
 image:
   ecr_registry: 254405569649.dkr.ecr.us-east-1.amazonaws.com
-  ecr_repository: shopverse-dev/frontend
+  ecr_repository: shopverse/frontend
   tag: v1
   digest: sha256:0af00d4e64ddc72b75b09331f5d93a62270cf7a7aca97d36b2d5352c8fe80fb5
 containerName: frontend
