@@ -11,11 +11,10 @@ image:
   ecr_registry: 254405569649.dkr.ecr.us-east-1.amazonaws.com
   ecr_repository: shopverse/backend
   tag: v1
-  digest: sha256:32cceec4d1ae16664da3dcf2b1d12023bd29943bf86e98542c390c707760c75e
+  digest: sha256:a58504baa7cde9bc4e65bc93ee30b9c81fcd1ee5a622fd9e3b3f6a64fbb6c657
 containerName: backend
 imagePullPolicy: Always
 terminationGracePeriodSeconds: 30
-
 # ---------------------------------------------------
 # Labels
 # ---------------------------------------------------
@@ -24,14 +23,12 @@ labels:
   app.kubernetes.io/component: backend
   app.kubernetes.io/env: prod
   app.kubernetes.io/version: 1.0.0
-  
 # ---------------------------------------------------
 # Deployment
 # ---------------------------------------------------
 deployment:
   name: backend-deploy
   replicas: 1
-  
 # ---------------------------------------------------
 # Service
 # ---------------------------------------------------
@@ -40,7 +37,6 @@ service:
   type: ClusterIP
   port: 8080
   targetPort: 8080
-  
 # ---------------------------------------------------
 # Pod Annotations
 # ---------------------------------------------------
@@ -50,7 +46,6 @@ annotations:
   checksum_file: configmap.yaml
   values:
     reloader.stakater.com/auto: "true"
-    
 # ---------------------------------------------------
 # Security Context
 # ---------------------------------------------------
@@ -70,7 +65,6 @@ containerSecurityContext:
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 1000
-    
 # ---------------------------------------------------
 # Configmaps & Secrets
 # ---------------------------------------------------
@@ -84,15 +78,14 @@ configmap:
     FRONTEND_ORIGIN: "*"
 secret:
   name: shopverse-prod-mysql-jwt-credentials
-  create: false      # Creates through ESO    
+  create: false # Creates through ESO    
 envFrom:
   enabled: true
   values:
     - configMapRef:
         name: backend-configmap
     - secretRef:
-        name: shopverse-prod-mysql-jwt-credentials    # Creates through ESO   
-        
+        name: shopverse-prod-mysql-jwt-credentials # Creates through ESO   
 # ---------------------------------------------------
 # Limits & Requests
 # ---------------------------------------------------
@@ -105,7 +98,6 @@ resources:
     limits:
       cpu: "200m"
       memory: "256Mi"
-      
 # ---------------------------------------------------
 # Healthcheck Probes
 # ---------------------------------------------------
@@ -133,7 +125,6 @@ livenessProbe:
       port: 8080
     initialDelaySeconds: 20
     periodSeconds: 30
-    
 # ---------------------------------------------------
 # Autoscaling
 # ---------------------------------------------------
@@ -145,7 +136,6 @@ autoscaling:
     maxReplicas: 3
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
-    
 # ---------------------------------------------------
 # Service Account
 # ---------------------------------------------------
