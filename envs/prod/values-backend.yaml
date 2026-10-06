@@ -2,14 +2,14 @@
 #                    BACKEND
 # ===================================================
 
-# namespace: shopverse-dev
+# namespace: shopverse-prod
 
 # ---------------------------------------------------
 # Container
 # ---------------------------------------------------
 image:
   ecr_registry: 254405569649.dkr.ecr.us-east-1.amazonaws.com
-  ecr_repository: shopverse-dev/backend
+  ecr_repository: shopverse/backend
   tag: v1
   digest: sha256:32cceec4d1ae16664da3dcf2b1d12023bd29943bf86e98542c390c707760c75e
 containerName: backend
