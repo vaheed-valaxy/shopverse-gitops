@@ -2,7 +2,7 @@
 #                    BACKEND
 # ===================================================
 
-# namespace: shopverse-dev
+# namespace: shopverse-qa
 
 # ---------------------------------------------------
 # Container
@@ -21,7 +21,7 @@ terminationGracePeriodSeconds: 30
 labels:
   app.kubernetes.io/name: shopverse
   app.kubernetes.io/component: backend
-  app.kubernetes.io/env: dev
+  app.kubernetes.io/env: qa
   app.kubernetes.io/version: 1.0.0
 # ---------------------------------------------------
 # Deployment
@@ -72,12 +72,12 @@ configmap:
   enabled: true
   name: backend-configmap
   values:
-    DB_HOST: "shopverse-dev-mysql.ca9aykaigakf.us-east-1.rds.amazonaws.com"
+    DB_HOST: "shopverse-qa-mysql.ca9aykaigakf.us-east-1.rds.amazonaws.com"
     DB_PORT: "3306"
     DB_NAME: "shopverse"
     FRONTEND_ORIGIN: "*"
 secret:
-  name: shopverse-dev-mysql-jwt-credentials
+  name: shopverse-qa-mysql-jwt-credentials
   create: false # Creates through ESO    
 envFrom:
   enabled: true
@@ -85,7 +85,7 @@ envFrom:
     - configMapRef:
         name: backend-configmap
     - secretRef:
-        name: shopverse-dev-mysql-jwt-credentials # Creates through ESO   
+        name: shopverse-qa-mysql-jwt-credentials # Creates through ESO   
 # ---------------------------------------------------
 # Limits & Requests
 # ---------------------------------------------------
