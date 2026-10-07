@@ -55,8 +55,8 @@ backendIngress:
     alb.ingress.kubernetes.io/healthcheck-path: /health
     alb.ingress.kubernetes.io/healthcheck-port: traffic-port
   
-    # This is important to mix all the service ingresses and form one complete ingress
-    alb.ingress.kubernetes.io/group.name: shopverse-dev    # This should be same in all the ingress.yaml files to collaboratively create single ALB
+    # Grouping (very important for multiple ingresses)
+    alb.ingress.kubernetes.io/group.name: shopverse-dev        # This should be same in all the ingress.yaml files to collaboratively create single ALB
 
     # 🔥 higher priority
     alb.ingress.kubernetes.io/group.order: "1"   
@@ -84,8 +84,8 @@ frontendIngress:
     alb.ingress.kubernetes.io/healthcheck-path: /health
     alb.ingress.kubernetes.io/healthcheck-port: traffic-port
     
-    # This is important to mix all the service ingresses and form one complete ingress
-    alb.ingress.kubernetes.io/group.name: shopverse-dev    # This should be same in all the ingress.yaml files to collaboratively create single ALB
+    # Grouping (very important for multiple ingresses)
+    alb.ingress.kubernetes.io/group.name: shopverse-dev        # This should be same in all the ingress.yaml files to collaboratively create single ALB
 
     # 🔥 lower priority
     alb.ingress.kubernetes.io/group.order: "2"   
