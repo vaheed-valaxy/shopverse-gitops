@@ -175,8 +175,8 @@ jobs:
       argocd-port: '8090'                     # port-forward purpose
       argocd-app: 'shopverse-dev-backend'
       
-    # secrets:
-    #   DEV_ARGOCD_AUTH_TOKEN: ${{ secrets.DEV_ARGOCD_AUTH_TOKEN }}
+    secrets:
+      ARGOCD_AUTH_TOKEN: ${{ secrets.DEV_ARGOCD_AUTH_TOKEN }}
 
 
   Qa-GitOps-Job:
