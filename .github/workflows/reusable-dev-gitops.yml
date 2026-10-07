@@ -69,7 +69,7 @@ on:
 
     secrets:
 
-      DEV_ARGOCD_AUTH_TOKEN:
+      ARGOCD_AUTH_TOKEN:
         description: "Argo CD project-role authentication token"
         required: false
 
@@ -506,7 +506,7 @@ jobs:
       - name: Login to Argo CD & Check App
         shell: bash
         env:
-          ARGOCD_AUTH_TOKEN: ${{ secrets.DEV_ARGOCD_AUTH_TOKEN }}       # Setting 'ARGOCD_AUTH_TOKEN' will automatically use this user as logged in user
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}       # Setting 'ARGOCD_AUTH_TOKEN' will automatically use this user as logged in user for whom the token is generated
           ARGOCD_HOST: ${{ env.ARGOCD_HOST }}
           ARGOCD_PORT: ${{ env.ARGOCD_PORT }}
           ARGOCD_APP: ${{ inputs.argocd-app }}  
