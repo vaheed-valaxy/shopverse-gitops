@@ -9,7 +9,7 @@ kubectl port-forward svc/argocd-server -n argocd 8090:443 --address 0.0.0.0
 ```
 ## Login to ArgoCD
 ```bash
-argocd login 127.0.0.1:8080 --username admin --password ZjVNPFGA3cAJIcXC --insecure
+argocd login 127.0.0.1:8090 --username admin --password ZjVNPFGA3cAJIcXC --insecure
 argocd account get-user-info
 ```
 ## Install ArgoCD CLI
