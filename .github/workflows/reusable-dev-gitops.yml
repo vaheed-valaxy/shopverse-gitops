@@ -374,8 +374,8 @@ jobs:
       - X64
       - shopverse-dev
 
-    environment:
-      name: dev
+    # environment:
+    #   name: dev
 
     permissions:
       contents: read
