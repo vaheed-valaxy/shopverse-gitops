@@ -17,7 +17,7 @@ spec:
             pathType: {{ .Values.frontendIngress.pathType }}        # Prefix
             backend:
               service:
-                name: {{ .Values.frontendIngress.name }}            # frontend-svc
+                name: {{ .Values.frontendIngress.serviceName }}            # frontend-svc
                 port:
-                  number: {{ .Values.frontendIngress.port }}        # 8080
+                  number: {{ .Values.frontendIngress.servicePort }}        # 8080
 {{- end }}
