@@ -513,6 +513,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [[ -z "${ARGOCD_AUTH_TOKEN}" ]]; then
+            echo "ARGOCD_AUTH_TOKEN is not configured."
+            exit 1
+          fi
+
           echo "Logged into ArgoCD as:"
           argocd account get-user-info
           
