@@ -10,16 +10,4 @@ metadata:
   {{- end }}
 spec:
   ingressClassName: {{ .Values.baseIngress.ingressClassName }}    # alb
-
-  # Atleast one rule required to create ALB
-  rules:
-    - http:
-        paths:
-          - path: {{ .Values.baseIngress.path }}                 # /health
-            pathType: {{ .Values.baseIngress.pathType }}         # Prefix
-            backend:
-              service:
-                name: {{ .Values.baseIngress.serviceName }}      # frontend-svc
-                port:
-                  number: {{ .Values.baseIngress.servicePort }}  # 8080
 {{- end }}
