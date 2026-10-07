@@ -3,7 +3,7 @@ namespace: shopverse-dev
 # BASE Ingress
 # ──────────────────────────────────────--------------------------
 baseIngress:
-  enabled: true
+  enabled: false
   name: shopverse-base-ingress
   ingressClassName: alb
 
@@ -59,7 +59,7 @@ baseIngress:
 # BACKEND Ingress
 # ──────────────────────────────────────--------------------------
 backendIngress:
-  enabled: true
+  enabled: false
   name: shopverse-backend-ingress
   ingressClassName: alb
   
@@ -82,7 +82,7 @@ backendIngress:
 # FRONTEND Ingress
 # ──────────────────────────────────────--------------------------
 frontendIngress:
-  enabled: true
+  enabled: false
   name: shopverse-frontend-ingress
   ingressClassName: alb
   
