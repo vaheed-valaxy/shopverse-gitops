@@ -72,7 +72,6 @@ on:
       ARGOCD_AUTH_TOKEN:
         description: "Argo CD project-role authentication token"
         required: false
-        default: ""
 
 
 env:
