@@ -58,7 +58,8 @@ backendIngress:
     # This is important to mix all the service ingresses and form one complete ingress
     alb.ingress.kubernetes.io/group.name: shopverse-dev    # This should be same in all the ingress.yaml files to collaboratively create single ALB
 
-    alb.ingress.kubernetes.io/group.order: "1"   # 🔥 higher priority
+    # 🔥 higher priority
+    alb.ingress.kubernetes.io/group.order: "1"   
     
 
 # ──────────────────────────────────────--------------------------
@@ -86,4 +87,5 @@ frontendIngress:
     # This is important to mix all the service ingresses and form one complete ingress
     alb.ingress.kubernetes.io/group.name: shopverse-dev    # This should be same in all the ingress.yaml files to collaboratively create single ALB
 
-    alb.ingress.kubernetes.io/group.order: "2"   # 🔥 lower priority
+    # 🔥 lower priority
+    alb.ingress.kubernetes.io/group.order: "2"   
